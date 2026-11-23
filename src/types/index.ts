@@ -12,6 +12,14 @@ export type Category =
   | 'Sovereign AI'
   | 'Infrastructure'
   | 'Startups'
+  | 'MENA'
+  | 'World'
+  | 'Business'
+  | 'Technology'
+  | 'Innovation'
+  | 'AI in Action'
+  | 'Video'
+  | 'Opinion & Analysis'
 
 export type Country =
   | 'Saudi Arabia'
@@ -24,6 +32,12 @@ export type Country =
   | 'Morocco'
   | 'Jordan'
   | 'Regional'
+  | 'United States'
+  | 'United Kingdom'
+  | 'European Union'
+  | 'China'
+  | 'India'
+  | 'Global'
 
 export type FundingStage =
   | 'Pre-Seed'
@@ -60,19 +74,42 @@ export interface Article {
   title: string
   excerpt: string
   content?: string
+  bodyParagraphs?: string[]
   category: Category
   country: Country
+  region?: 'MENA' | 'Global' | 'North America' | 'Europe' | 'Asia-Pacific'
   author: Author
   publishedAt: string
   updatedAt?: string
   readingTime: number
   image: string
+  imageUrl?: string
   imageAlt: string
+  imageCaption?: string
   tags: string[]
   featured?: boolean
   trending?: boolean
+  leadStory?: boolean
+  editorPick?: boolean
   keyTakeaways?: string[]
+  quotes?: { quote: string; author: string; role?: string }[]
   sources?: string[]
+}
+
+export interface VideoArticle {
+  id: string
+  slug: string
+  title: string
+  description: string
+  category: Category
+  country: Country
+  duration: string
+  thumbnailUrl: string
+  videoUrl: string
+  publishedAt: string
+  presenter: string
+  views?: string
+  featured?: boolean
 }
 
 export interface FundingDeal {

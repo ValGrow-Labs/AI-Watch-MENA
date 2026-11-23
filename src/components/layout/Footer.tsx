@@ -1,297 +1,133 @@
 'use client';
 
-import { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Mail, ArrowRight } from 'lucide-react';
-
-// ─── Types ───────────────────────────────────────────────────────────────────
-
-interface FooterColumn {
-  title: string;
-  links: { label: string; href: string }[];
-}
-
-// ─── Data ────────────────────────────────────────────────────────────────────
-
-const FOOTER_COLUMNS: FooterColumn[] = [
-  {
-    title: 'Platform',
-    links: [
-      { label: 'Home', href: '/' },
-      { label: 'Intelligence', href: '/intelligence' },
-      { label: 'Analysis & Reports', href: '/analysis' },
-      { label: 'Funding & Deals', href: '/funding' },
-      { label: 'Dashboard', href: '/dashboard' },
-    ],
-  },
-  {
-    title: 'Coverage',
-    links: [
-      { label: 'Saudi Arabia', href: '/intelligence?country=saudi-arabia' },
-      { label: 'UAE', href: '/intelligence?country=uae' },
-      { label: 'Qatar', href: '/intelligence?country=qatar' },
-      { label: 'Egypt', href: '/intelligence?country=egypt' },
-      { label: 'Bahrain', href: '/intelligence?country=bahrain' },
-      { label: 'Oman', href: '/intelligence?country=oman' },
-      { label: 'Kuwait', href: '/intelligence?country=kuwait' },
-    ],
-  },
-  {
-    title: 'Topics',
-    links: [
-      { label: 'Sovereign AI', href: '/analysis?topic=sovereign-ai' },
-      { label: 'AI Infrastructure', href: '/analysis?topic=ai-infrastructure' },
-      { label: 'Arabic AI', href: '/analysis?topic=arabic-ai' },
-      { label: 'Enterprise AI', href: '/intelligence?category=enterprise' },
-      { label: 'AI Regulation', href: '/regulation' },
-      { label: 'Startups & VC', href: '/funding' },
-    ],
-  },
-  {
-    title: 'Company',
-    links: [
-      { label: 'About', href: '/about' },
-      { label: 'Editorial Standards', href: '/editorial-standards' },
-      { label: 'Advertising', href: '/advertising' },
-      { label: 'Partnerships', href: '/partnerships' },
-      { label: 'Contact', href: '/contact' },
-    ],
-  },
-];
-
-const BOTTOM_LINKS = [
-  { label: 'Privacy Policy', href: '/privacy' },
-  { label: 'Terms', href: '/terms' },
-  { label: 'Cookie Policy', href: '/cookies' },
-];
-
-// ─── Logo Mark ───────────────────────────────────────────────────────────────
-
-function LogoMark({ size = 20 }: { size?: number }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 18 18" fill="none" aria-hidden="true">
-      <path
-        d="M2 2 L2 16 M2 2 L7 2 M2 9 L6 9"
-        stroke="var(--accent)"
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-      <path
-        d="M11 2 L16 2 L16 16 M11 16 L16 16 M11 9 L15 9"
-        stroke="var(--accent)"
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
-  );
-}
-
-// ─── Newsletter Inline Form ───────────────────────────────────────────────────
-
-function NewsletterForm() {
-  const [email, setEmail] = useState('');
-  const [submitted, setSubmitted] = useState(false);
-
-  function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    if (!email) return;
-    // In production: wire to newsletter API
-    setSubmitted(true);
-  }
-
-  if (submitted) {
-    return (
-      <div
-        className="flex items-center gap-2 text-sm"
-        style={{ color: 'var(--accent)' }}
-      >
-        <span>✓</span>
-        <span>You&apos;re subscribed. Welcome aboard.</span>
-      </div>
-    );
-  }
-
-  return (
-    <form onSubmit={handleSubmit} className="flex gap-2 max-w-sm">
-      <input
-        type="email"
-        value={email}
-        onChange={(e) => setEmail(e.target.value)}
-        placeholder="Your email address"
-        required
-        className="flex-1 px-3 py-2 rounded-lg text-sm outline-none transition-colors"
-        style={{
-          background: 'var(--surface2)',
-          border: '1px solid var(--border)',
-          color: 'var(--text)',
-        }}
-        aria-label="Email address for newsletter"
-      />
-      <button
-        type="submit"
-        className="btn-primary text-sm py-2 px-3 gap-1.5 shrink-0"
-        aria-label="Subscribe"
-      >
-        <ArrowRight size={14} />
-        Subscribe
-      </button>
-    </form>
-  );
-}
-
-// ─── Footer Column ────────────────────────────────────────────────────────────
-
-function Column({ col }: { col: FooterColumn }) {
-  return (
-    <div>
-      <h4
-        className="font-semibold text-sm mb-4 tracking-wide"
-        style={{ color: 'var(--text)' }}
-      >
-        {col.title}
-      </h4>
-      <ul className="space-y-2.5">
-        {col.links.map((link) => (
-          <li key={link.href}>
-            <Link
-              href={link.href}
-              className="text-sm transition-colors duration-150"
-              style={{ color: 'var(--text3)' }}
-              onMouseEnter={(e) => ((e.currentTarget as HTMLElement).style.color = 'var(--accent)')}
-              onMouseLeave={(e) => ((e.currentTarget as HTMLElement).style.color = 'var(--text3)')}
-            >
-              {link.label}
-            </Link>
-          </li>
-        ))}
-      </ul>
-    </div>
-  );
-}
-
-// ─── Footer (main export) ─────────────────────────────────────────────────────
+import { ArrowUp, Globe2, ShieldCheck, Mail } from 'lucide-react';
 
 export function Footer() {
   const pathname = usePathname();
+  const isHomepage = pathname === '/';
 
-  // Suppress editorial footer inside dedicated intelligence terminal
-  if (pathname?.startsWith('/dashboard')) {
-    return null;
+  const scrollToTop = () => {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  // ── HOMEPAGE: COMPACT CONTINUOUS NEWSROOM UTILITY BAR ──
+  if (isHomepage) {
+    return (
+      <footer className="w-full border-t border-[var(--border)] bg-[var(--surface)] text-xs text-[var(--text2)] py-6 mt-12 transition-colors">
+        <div className="content-container flex flex-col md:flex-row items-center justify-between gap-4">
+          <div className="flex flex-col sm:flex-row items-center gap-2 sm:gap-4 text-center sm:text-left">
+            <span className="font-bold text-[var(--text)]">AI WATCH MENA</span>
+            <span className="hidden sm:inline text-[var(--border2)]">•</span>
+            <span className="text-[11px] text-[var(--text3)]">
+              Independent Technology & Artificial Intelligence Journalism
+            </span>
+          </div>
+
+          <div className="flex flex-wrap items-center justify-center gap-4 text-xs font-medium">
+            <Link href="/about" className="hover:text-[var(--accent)] transition-colors">
+              About
+            </Link>
+            <Link href="/contact" className="hover:text-[var(--accent)] transition-colors">
+              Contact & Tips
+            </Link>
+            <Link href="/editorial-standards" className="hover:text-[var(--accent)] transition-colors">
+              Editorial Standards
+            </Link>
+            <Link href="/privacy" className="hover:text-[var(--accent)] transition-colors">
+              Privacy
+            </Link>
+            <Link href="/terms" className="hover:text-[var(--accent)] transition-colors">
+              Terms
+            </Link>
+          </div>
+
+          <button
+            onClick={scrollToTop}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-[var(--border)] hover:bg-[var(--surface2)] text-[11px] font-semibold text-[var(--text)] transition-colors shrink-0"
+            aria-label="Back to top"
+          >
+            <span>Back to top</span>
+            <ArrowUp size={12} />
+          </button>
+        </div>
+      </footer>
+    );
   }
 
+  // ── SECONDARY PAGES: REFINED EDITORIAL FOOTER ──
   return (
-    <footer
-      style={{
-        background: 'var(--surface)',
-        borderTop: '1px solid var(--border)',
-      }}
-    >
-      {/* ── TOP SECTION ── */}
-      <div
-        className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-14"
-        style={{ borderBottom: '1px solid var(--border)' }}
-      >
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-10 items-start">
-          {/* Brand block */}
-          <div className="max-w-sm">
-            <Link href="/" className="inline-flex items-center gap-2 mb-3" aria-label="AI Watch MENA">
-              <LogoMark size={22} />
-              <span
-                className="font-bold text-xl tracking-tight"
-                style={{
-                  fontFamily: 'var(--font-manrope, Manrope, system-ui, sans-serif)',
-                  color: 'var(--text)',
-                }}
-              >
-                AI Watch <span style={{ color: 'var(--accent)' }}>MENA</span>
+    <footer className="w-full border-t border-[var(--border)] bg-[var(--surface)] text-xs text-[var(--text2)] py-10 mt-16 transition-colors">
+      <div className="content-container space-y-8">
+        <div className="flex flex-col md:flex-row justify-between items-start gap-8">
+          <div className="space-y-3 max-w-sm">
+            <div className="flex items-center gap-2 font-black text-lg text-[var(--text)]">
+              <span className="w-6 h-6 rounded bg-[var(--accent)] text-white text-xs flex items-center justify-center">
+                AW
               </span>
-            </Link>
-            <p
-              className="text-sm font-medium mb-3"
-              style={{ color: 'var(--accent2)' }}
-            >
-              The Intelligence Behind the MENA AI Economy
-            </p>
-            <p className="text-sm leading-relaxed mb-0" style={{ color: 'var(--text3)' }}>
-              AI Watch MENA is the region&apos;s leading editorial platform for
-              artificial intelligence intelligence, covering funding, policy,
-              enterprise adoption, and emerging technology across the Arab world.
-            </p>
-          </div>
-
-          {/* Newsletter block */}
-          <div>
-            <div className="flex items-center gap-2 mb-2">
-              <Mail size={15} style={{ color: 'var(--accent)' }} />
-              <span className="text-sm font-semibold" style={{ color: 'var(--text)' }}>
-                Weekly AI Intelligence Digest
-              </span>
+              <span>AI WATCH MENA</span>
             </div>
-            <p className="text-xs mb-3" style={{ color: 'var(--text3)' }}>
-              Analysis, funding rounds, and policy updates — every Thursday.
+            <p className="text-xs text-[var(--text3)] leading-relaxed">
+              Covering artificial intelligence developments, sovereign compute strategies, and technology transformation across the Middle East, North Africa, and global frontiers.
             </p>
-            <NewsletterForm />
+          </div>
+
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-8 text-xs">
+            <div>
+              <div className="font-bold text-[var(--text)] uppercase tracking-wider mb-2.5 text-[11px]">
+                Editorial
+              </div>
+              <ul className="space-y-1.5">
+                <li><Link href="/mena" className="hover:text-[var(--accent)]">MENA Reporting</Link></li>
+                <li><Link href="/world" className="hover:text-[var(--accent)]">Global AI News</Link></li>
+                <li><Link href="/business" className="hover:text-[var(--accent)]">Business & Strategy</Link></li>
+                <li><Link href="/technology" className="hover:text-[var(--accent)]">Deep Technology</Link></li>
+                <li><Link href="/video" className="hover:text-[var(--accent)]">Video Journalism</Link></li>
+              </ul>
+            </div>
+
+            <div>
+              <div className="font-bold text-[var(--text)] uppercase tracking-wider mb-2.5 text-[11px]">
+                Regional Bureaus
+              </div>
+              <ul className="space-y-1.5">
+                <li><Link href="/mena?country=saudi-arabia" className="hover:text-[var(--accent)]">Riyadh (KSA)</Link></li>
+                <li><Link href="/mena?country=uae" className="hover:text-[var(--accent)]">Abu Dhabi & Dubai (UAE)</Link></li>
+                <li><Link href="/mena?country=qatar" className="hover:text-[var(--accent)]">Doha (Qatar)</Link></li>
+                <li><Link href="/mena?country=egypt" className="hover:text-[var(--accent)]">Cairo (Egypt)</Link></li>
+                <li><Link href="/mena?country=regional" className="hover:text-[var(--accent)]">Casablanca & Amman</Link></li>
+              </ul>
+            </div>
+
+            <div>
+              <div className="font-bold text-[var(--text)] uppercase tracking-wider mb-2.5 text-[11px]">
+                Standards & Policies
+              </div>
+              <ul className="space-y-1.5">
+                <li><Link href="/editorial-standards" className="hover:text-[var(--accent)]">Code of Ethics</Link></li>
+                <li><Link href="/about" className="hover:text-[var(--accent)]">About Newsroom</Link></li>
+                <li><Link href="/contact" className="hover:text-[var(--accent)]">Press & Tips</Link></li>
+                <li><Link href="/privacy" className="hover:text-[var(--accent)]">Privacy Policy</Link></li>
+                <li><Link href="/terms" className="hover:text-[var(--accent)]">Terms of Use</Link></li>
+              </ul>
+            </div>
           </div>
         </div>
-      </div>
 
-      {/* ── MIDDLE SECTION: 4-column grid ── */}
-      <div
-        className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12"
-        style={{ borderBottom: '1px solid var(--border)' }}
-      >
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
-          {FOOTER_COLUMNS.map((col) => (
-            <Column key={col.title} col={col} />
-          ))}
-        </div>
-      </div>
-
-      {/* ── BOTTOM SECTION ── */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-        <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
-          {/* Copyright + disclaimer */}
-          <div className="flex flex-col sm:flex-row items-center gap-1 sm:gap-3 text-center sm:text-left">
-            <span className="text-xs" style={{ color: 'var(--text3)' }}>
-              © 2024 AI Watch MENA. All rights reserved.
-            </span>
-            <span
-              className="hidden sm:inline text-xs"
-              style={{ color: 'var(--border2)' }}
-            >
-              ·
-            </span>
-            <span className="text-xs" style={{ color: 'var(--text3)', opacity: 0.75 }}>
-              Editorial content produced independently. All data is illustrative.
-            </span>
+        <div className="pt-6 border-t border-[var(--border)] flex flex-col sm:flex-row items-center justify-between gap-4 text-[11px] text-[var(--text3)]">
+          <div>
+            &copy; {new Date().getFullYear()} AI Watch MENA. All rights reserved. Journalism-first publication.
           </div>
-
-          {/* Legal links */}
-          <div className="flex items-center gap-4">
-            {BOTTOM_LINKS.map((link, i) => (
-              <span key={link.href} className="flex items-center gap-4">
-                {i > 0 && (
-                  <span className="text-xs" style={{ color: 'var(--border2)' }}>·</span>
-                )}
-                <Link
-                  href={link.href}
-                  className="text-xs transition-colors duration-150"
-                  style={{ color: 'var(--text3)' }}
-                  onMouseEnter={(e) => ((e.currentTarget as HTMLElement).style.color = 'var(--accent)')}
-                  onMouseLeave={(e) => ((e.currentTarget as HTMLElement).style.color = 'var(--text3)')}
-                >
-                  {link.label}
-                </Link>
-              </span>
-            ))}
-          </div>
+          <button
+            onClick={scrollToTop}
+            className="flex items-center gap-1 hover:text-[var(--text)] transition-colors"
+          >
+            <span>Back to top</span>
+            <ArrowUp size={12} />
+          </button>
         </div>
       </div>
     </footer>
   );
 }
-
-export default Footer;

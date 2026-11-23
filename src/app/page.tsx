@@ -1,101 +1,157 @@
-'use client'
+'use client';
 
-import { useState } from 'react'
-import Link from 'next/link'
-import Image from 'next/image'
-import { motion, AnimatePresence } from 'framer-motion'
+import { useState, useEffect } from 'react';
+import Link from 'next/link';
+import { motion, AnimatePresence } from 'framer-motion';
 import {
   ArrowRight,
-  TrendingUp,
   Clock,
-  User,
-  Shield,
-  Building2,
-  DollarSign,
-  Rocket,
-  CheckCircle2,
-  ExternalLink,
+  Play,
+  TrendingUp,
+  Bookmark,
+  Share2,
   ChevronRight,
-  Sparkles,
-  BarChart3,
-  Layers,
   Globe2,
-} from 'lucide-react'
+  Cpu,
+  Flame,
+  Check,
+  X,
+  Sparkles,
+  Layers,
+  Activity,
+  Zap,
+} from 'lucide-react';
 
-import { ARTICLES } from '@/data/articles'
-import { FUNDING_DEALS } from '@/data/funding'
-import { VENDORS } from '@/data/vendors'
-import { REGULATION_ENTRIES } from '@/data/regulation'
-import { COUNTRY_PROFILES } from '@/data/countries'
-import { DASHBOARD_METRICS } from '@/data/dashboard'
-import { formatDateShort, getCategoryColor, getCountryFlag } from '@/lib/utils'
-import NewsletterCTA from '@/components/shared/NewsletterCTA'
-import CountryPill from '@/components/shared/CountryPill'
-import CategoryBadge from '@/components/shared/CategoryBadge'
+import { ARTICLES } from '@/data/articles';
+import { VIDEOS } from '@/data/videos';
+import { formatDateShort } from '@/lib/utils';
+import EditorialImage from '@/components/shared/EditorialImage';
+import type { Article, VideoArticle } from '@/types';
 
-export default function HomePage() {
-  const [selectedCategory, setSelectedCategory] = useState<string>('All')
-  const [activeCountryId, setActiveCountryId] = useState<string>('saudi-arabia')
+export default function EditorialHomePage() {
+  const [selectedMenaCountry, setSelectedMenaCountry] = useState<string>('All');
+  const [activeVideo, setActiveVideo] = useState<VideoArticle | null>(null);
+  const [savedSlugs, setSavedSlugs] = useState<string[]>([]);
+  const [copiedSlug, setCopiedSlug] = useState<string | null>(null);
+  const [newsletterEmail, setNewsletterEmail] = useState('');
+  const [newsletterSubmitted, setNewsletterSubmitted] = useState(false);
+  const [visibleNewsCount, setVisibleNewsCount] = useState(8);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
 
-  // Top breaking headlines for ticker
-  const tickerItems = [
-    { text: 'SDAIA accelerates Vision 2030 AI strategy with $40B compute & talent commitment in Riyadh', tag: 'SAUDI ARABIA' },
-    { text: 'UAE G42 and Microsoft advance $1.5B sovereign AI infrastructure expansion across Abu Dhabi', tag: 'UAE' },
-    { text: 'Qatar Investment Authority launches $1B dedicated frontier AI and enterprise venture vehicle', tag: 'QATAR' },
-    { text: 'Cairo tech hub registers 40+ new AI ventures in 2026, scaling regional talent exports', tag: 'EGYPT' },
-    { text: 'Central Bank of Bahrain broadens open-banking AI regulatory sandbox for regional fintechs', tag: 'BAHRAIN' },
-  ]
+  // Load saved bookmarks from localStorage
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem('aiwatch_bookmarks');
+      if (saved) setSavedSlugs(JSON.parse(saved));
+    } catch {}
+  }, []);
 
-  // Editorial Hero Article
-  const heroArticle = ARTICLES.find((a) => a.featured) || ARTICLES[0]
+  const toggleBookmark = (slug: string) => {
+    let updated: string[];
+    if (savedSlugs.includes(slug)) {
+      updated = savedSlugs.filter((s) => s !== slug);
+    } else {
+      updated = [...savedSlugs, slug];
+    }
+    setSavedSlugs(updated);
+    try {
+      localStorage.setItem('aiwatch_bookmarks', JSON.stringify(updated));
+    } catch {}
+  };
 
-  // Secondary featured stories
-  const secondaryFeatured = ARTICLES.filter((a) => a.id !== heroArticle.id && a.featured).slice(0, 2)
+  const handleShare = (article: Article) => {
+    const url = `${window.location.origin}/intelligence/${article.slug}`;
+    if (navigator.clipboard) {
+      navigator.clipboard.writeText(url);
+      setCopiedSlug(article.slug);
+      setTimeout(() => setCopiedSlug(null), 2000);
+    }
+  };
 
-  // Trending stories
-  const trendingStories = ARTICLES.filter((a) => a.trending).slice(0, 3)
+  const handleLoadMore = () => {
+    setIsLoadingMore(true);
+    setTimeout(() => {
+      setVisibleNewsCount((prev) => prev + 4);
+      setIsLoadingMore(false);
+    }, 350);
+  };
 
-  // Filtered latest intelligence feed
-  const categories = ['All', 'Intelligence', 'Analysis', 'Funding', 'Policy', 'Research']
-  const filteredArticles = selectedCategory === 'All'
-    ? ARTICLES.slice(0, 6)
-    : ARTICLES.filter((a) => a.category.toLowerCase() === selectedCategory.toLowerCase()).slice(0, 6)
+  // ── EDITORIAL CONTENT CURATION ──
+  const leadStory = ARTICLES.find((a) => a.leadStory) || ARTICLES[0];
+  const topSecondaryStories = ARTICLES.filter((a) => a.id !== leadStory.id && a.featured).slice(0, 3);
+  const breakingTickers = [
+    { tag: 'RIYADH', text: 'SDAIA accelerates Vision 2030 AI strategy with $40B compute and venture allocation', slug: 'saudi-arabia-national-ai-strategy-2030-accelerates' },
+    { tag: 'ABU DHABI', text: 'G42 and Microsoft inaugurate multi-region Sovereign Compute Corridor linking Asia and Africa', slug: 'uae-sovereign-ai-g42-global-expansion' },
+    { tag: 'DOHA', text: 'Qatar Investment Authority creates $1B frontier deeptech fund targeting robotics and photonics', slug: 'qatar-qia-ai-fund-1b-deeptech-venture' },
+    { tag: 'CAIRO', text: 'Egypt records 40 new venture-backed AI engineering startups in 2026', slug: 'egypt-cairo-ai-tech-hub-talent-surge' },
+    { tag: 'BRUSSELS', text: 'European AI Office starts mandatory statutory audits on general-purpose frontier models', slug: 'european-ai-act-strict-enforcement-begins' },
+  ];
 
-  // Active country profile
-  const activeCountry = COUNTRY_PROFILES.find((c) => c.id === activeCountryId) || COUNTRY_PROFILES[0]
+  // Latest Chronological News
+  const latestNews = [...ARTICLES].sort(
+    (a, b) => new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime()
+  );
 
-  // Highlights
-  const recentDeals = FUNDING_DEALS.slice(0, 3)
-  const featuredVendors = VENDORS.filter((v) => v.featured).slice(0, 3)
-  const latestRegulations = REGULATION_ENTRIES.slice(0, 2)
-  const analysisSpotlight = ARTICLES.filter((a) => a.category === 'Analysis' || a.category === 'Research').slice(0, 3)
+  // Regional MENA Coverage
+  const menaCountries = ['All', 'Saudi Arabia', 'UAE', 'Qatar', 'Egypt', 'Bahrain', 'Kuwait', 'Oman', 'Jordan', 'Morocco'];
+  const menaArticles = selectedMenaCountry === 'All'
+    ? ARTICLES.filter((a) => a.region === 'MENA' || a.category === 'MENA')
+    : ARTICLES.filter((a) => a.country === selectedMenaCountry);
+
+  // Global AI News
+  const globalArticles = ARTICLES.filter((a) => a.region !== 'MENA' || a.category === 'World');
+
+  // AI & Business
+  const businessArticles = ARTICLES.filter((a) => a.category === 'Business');
+
+  // Technology & Innovation
+  const techInnovationArticles = ARTICLES.filter(
+    (a) => a.category === 'Technology' || a.category === 'Innovation'
+  );
+
+  // AI in Sports & Society
+  const sportsSocietyArticles = ARTICLES.filter((a) => a.category === 'AI in Action');
+
+  // Features, Opinion & Analysis
+  const opinionAnalysisArticles = ARTICLES.filter(
+    (a) => a.category === 'Opinion & Analysis' || a.editorPick
+  );
 
   return (
-    <div className="min-h-screen bg-[var(--bg)] text-[var(--text)] transition-colors duration-250">
+    <div className="min-h-screen bg-[var(--bg)] text-[var(--text)] transition-colors duration-200">
       
       {/* ─────────────────────────────────────────────────────────────
-          1. BREAKING INTELLIGENCE TICKER
+          SECTION 02 — BREAKING NEWS / LIVE WIRE TICKER
           ───────────────────────────────────────────────────────────── */}
       <section
-        className="w-full border-b border-[var(--border)] overflow-hidden bg-[var(--surface)] text-xs"
-        aria-label="Breaking Intelligence Ticker"
+        className="w-full h-10 border-b border-[var(--border)] overflow-hidden bg-[var(--surface)] text-xs flex items-center"
+        aria-label="Breaking News Ticker"
       >
-        <div className="max-w-7xl mx-auto flex items-center">
-          <div className="flex items-center gap-2 px-4 py-2 bg-[var(--accent)] text-white font-bold tracking-wider shrink-0 uppercase text-[10px]">
-            <span className="w-1.5 h-1.5 rounded-full bg-red-400 animate-pulse" />
-            Live Wire
+        <div className="content-container w-full flex items-center h-full">
+          <div className="shrink-0 z-20 flex items-center gap-1.5 px-2.5 py-1 bg-red-600 text-white font-black tracking-wider uppercase text-[10px] rounded shadow-xs mr-3">
+            <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse shrink-0" />
+            <span className="whitespace-nowrap">LIVE WIRE</span>
           </div>
-          <div className="overflow-hidden whitespace-nowrap relative flex-1 py-2">
-            <div className="ticker-content inline-flex items-center gap-8 pl-4">
-              {tickerItems.concat(tickerItems).map((item, idx) => (
-                <div key={idx} className="inline-flex items-center gap-2">
-                  <span className="text-[10px] font-bold text-[var(--accent)] uppercase tracking-wide px-1.5 py-0.5 rounded bg-[var(--surface2)]">
+
+          <div className="relative flex-1 overflow-hidden h-full flex items-center min-w-0">
+            <div className="absolute left-0 top-0 bottom-0 w-8 bg-gradient-to-r from-[var(--surface)] to-transparent pointer-events-none z-10" />
+            <div className="absolute right-0 top-0 bottom-0 w-8 bg-gradient-to-l from-[var(--surface)] to-transparent pointer-events-none z-10" />
+
+            <div className="ticker-content inline-flex items-center gap-8 pl-4 whitespace-nowrap">
+              {breakingTickers.concat(breakingTickers).map((item, idx) => (
+                <div key={idx} className="inline-flex items-center gap-2.5 shrink-0 whitespace-nowrap">
+                  <span className="text-[10px] font-bold text-[var(--accent)] uppercase tracking-wider px-1.5 py-0.5 rounded bg-[var(--surface2)] border border-[var(--border)] shrink-0">
                     {item.tag}
                   </span>
-                  <span className="text-[var(--text2)] font-medium text-xs hover:text-[var(--text)] transition-colors">
+                  <Link
+                    href={`/intelligence/${item.slug}`}
+                    className="text-[var(--text)] font-semibold text-xs sm:text-[13px] hover:text-[var(--accent)] transition-colors cursor-pointer whitespace-nowrap shrink-0 hover:underline"
+                  >
                     {item.text}
+                  </Link>
+                  <span className="text-[var(--border2)] text-xs select-none shrink-0" aria-hidden="true">
+                    /
                   </span>
-                  <span className="text-[var(--border2)] text-xs">/</span>
                 </div>
               ))}
             </div>
@@ -103,533 +159,863 @@ export default function HomePage() {
         </div>
       </section>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 md:py-10 space-y-14 md:space-y-18">
+      {/* Main Editorial Content Container */}
+      <div className="content-container py-8 space-y-12 sm:space-y-16">
 
         {/* ─────────────────────────────────────────────────────────────
-            2. EDITORIAL HERO SECTION
+            SECTION 03 — TOP STORIES (EDITORIAL HERO & ASYMMETRIC RIVER)
             ───────────────────────────────────────────────────────────── */}
-        <section className="relative" aria-label="Hero Story">
-          {/* Subtle Ambient Glows */}
-          <div className="hero-orb top-0 -left-20 w-80 h-80 bg-[var(--accent)]" />
-          <div className="hero-orb -top-10 right-0 w-96 h-96 bg-[var(--accent2)]" />
+        <section aria-label="Top Editorial Stories">
+          <div className="border-b-2 border-[var(--text)] pb-2 mb-6 flex items-center justify-between">
+            <h2 className="text-sm font-black uppercase tracking-wider text-[var(--text)] flex items-center gap-2">
+              <span className="w-2.5 h-2.5 bg-[var(--accent)] rounded-full" />
+              Lead Stories & Top Analysis
+            </h2>
+            <span className="text-xs text-[var(--text3)] font-medium">Updated 15 mins ago</span>
+          </div>
 
-          <div className="relative z-10 card p-6 md:p-8 bg-[var(--surface)] border border-[var(--border)] rounded-2xl overflow-hidden">
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
-              
-              {/* Left Column: Editorial Headline & Narrative */}
-              <div className="lg:col-span-7 flex flex-col justify-center space-y-4">
-                <div className="flex items-center gap-3">
-                  <span className="section-label mb-0 text-[11px]">Primary Intelligence</span>
-                  <CountryPill country={heroArticle.country} />
-                  <CategoryBadge category={heroArticle.category} size="sm" />
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-10 items-start">
+            {/* Dominant Lead Story (7 cols) — Unboxed, Broadsheet Photographic Presentation */}
+            <article className="lg:col-span-7 space-y-4 group">
+              <Link href={`/intelligence/${leadStory.slug}`} className="block relative aspect-[16/10] sm:aspect-[16/9] rounded-xl overflow-hidden bg-[var(--surface2)]">
+                <EditorialImage
+                  src={leadStory.image}
+                  alt={leadStory.title}
+                  category={leadStory.category}
+                  country={leadStory.country}
+                  priority
+                  fill
+                  className="object-cover group-hover:scale-103 transition-transform duration-500"
+                />
+                <div className="absolute top-3 left-3 flex items-center gap-2">
+                  <span className="px-2.5 py-1 rounded bg-[var(--accent)] text-white text-[10px] font-black uppercase tracking-wider shadow-sm">
+                    {leadStory.country}
+                  </span>
+                  <span className="px-2.5 py-1 rounded bg-black/75 backdrop-blur-xs text-white text-[10px] font-bold uppercase tracking-wider">
+                    {leadStory.category}
+                  </span>
+                </div>
+              </Link>
+
+              <div className="space-y-2.5">
+                <div className="flex items-center gap-2 text-xs text-[var(--text3)]">
+                  <span className="font-semibold text-[var(--text)]">{leadStory.author.name}</span>
+                  <span>•</span>
+                  <span>{formatDateShort(leadStory.publishedAt)}</span>
+                  <span>•</span>
+                  <span>{leadStory.readingTime} min read</span>
                 </div>
 
-                <div className="space-y-3">
-                  <h1 className="text-2xl sm:text-3xl md:text-4xl font-extrabold tracking-tight text-[var(--text)] leading-[1.2]">
-                    <Link
-                      href={`/intelligence/${heroArticle.slug}`}
-                      className="hover:text-[var(--accent)] transition-colors duration-200"
-                    >
-                      {heroArticle.title}
-                    </Link>
-                  </h1>
-                  <p className="text-[var(--text2)] text-sm sm:text-base leading-relaxed line-clamp-3">
-                    {heroArticle.excerpt}
-                  </p>
-                </div>
+                <h1 className="text-2xl sm:text-3xl lg:text-[38px] xl:text-[44px] font-extrabold tracking-tight text-[var(--text)] leading-[1.12] group-hover:text-[var(--accent)] transition-colors">
+                  <Link href={`/intelligence/${leadStory.slug}`}>{leadStory.title}</Link>
+                </h1>
 
-                {/* Key Takeaways Box */}
-                {heroArticle.keyTakeaways && heroArticle.keyTakeaways.length > 0 && (
-                  <div className="bg-[var(--surface2)]/70 p-4 rounded-xl border border-[var(--border)] space-y-2">
-                    <div className="text-[11px] font-bold uppercase tracking-wider text-[var(--accent)] flex items-center gap-1.5">
-                      <Sparkles size={12} />
-                      Strategic Implications
-                    </div>
-                    <ul className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs text-[var(--text)]">
-                      {heroArticle.keyTakeaways.slice(0, 2).map((takeaway, i) => (
-                        <li key={i} className="flex items-start gap-1.5">
-                          <CheckCircle2 size={13} className="text-[var(--accent2)] shrink-0 mt-0.5" />
-                          <span className="line-clamp-2">{takeaway}</span>
+                <p className="text-base text-[var(--text2)] leading-relaxed">
+                  {leadStory.excerpt}
+                </p>
+
+                {/* Key Points Strip */}
+                {leadStory.keyTakeaways && (
+                  <div className="mt-3 p-3.5 rounded-lg bg-[var(--surface2)]/60 border-l-3 border-[var(--accent)] text-xs text-[var(--text)] space-y-1.5">
+                    <span className="font-bold uppercase tracking-wider text-[10px] text-[var(--accent)] block">
+                      Core Briefing Takeaways
+                    </span>
+                    <ul className="space-y-1 text-[var(--text2)]">
+                      {leadStory.keyTakeaways.slice(0, 2).map((takeaway, idx) => (
+                        <li key={idx} className="flex items-start gap-2">
+                          <span className="text-[var(--accent)] font-bold">•</span>
+                          <span>{takeaway}</span>
                         </li>
                       ))}
                     </ul>
                   </div>
                 )}
+              </div>
+            </article>
 
-                {/* Metadata & CTA */}
-                <div className="flex flex-wrap items-center justify-between gap-4 pt-2 border-t border-[var(--border)]">
-                  <div className="flex items-center gap-3 text-xs text-[var(--text2)]">
-                    <span className="flex items-center gap-1 font-medium text-[var(--text)]">
-                      <User size={13} className="text-[var(--accent)]" />
-                      {heroArticle.author.name}
-                    </span>
-                    <span>•</span>
-                    <span>{formatDateShort(heroArticle.publishedAt)}</span>
-                    <span>•</span>
-                    <span className="flex items-center gap-1">
-                      <Clock size={12} />
-                      {heroArticle.readingTime} min read
-                    </span>
-                  </div>
-
-                  <Link
-                    href={`/intelligence/${heroArticle.slug}`}
-                    className="btn-primary text-xs py-2 px-4 group shadow-sm"
-                  >
-                    Read Analysis
-                    <ArrowRight size={13} className="transition-transform group-hover:translate-x-1" />
-                  </Link>
-                </div>
+            {/* Alongside Secondary Top Headlines (5 cols) — Vertical Stream with Hairlines */}
+            <div className="lg:col-span-5 space-y-5">
+              <div className="text-xs font-bold uppercase tracking-wider text-[var(--text3)] pb-2 border-b border-[var(--border)]">
+                Key Developing Dispatches
               </div>
 
-              {/* Right Column: Hero Visual */}
-              <div className="lg:col-span-5 relative">
+              <div className="divide-y divide-[var(--border)]">
+                {topSecondaryStories.map((story) => (
+                  <article key={story.id} className="py-4 first:pt-0 last:pb-0 group space-y-2">
+                    <div className="flex gap-4 items-start">
+                      <div className="flex-1 space-y-1.5 min-w-0">
+                        <div className="flex items-center gap-2 text-[10px]">
+                          <span className="font-bold text-[var(--accent)] uppercase">{story.country}</span>
+                          <span className="text-[var(--text3)]">•</span>
+                          <span className="text-[var(--text3)]">{story.readingTime} min</span>
+                        </div>
+                        <h3 className="text-base font-bold text-[var(--text)] leading-snug group-hover:text-[var(--accent)] transition-colors line-clamp-2">
+                          <Link href={`/intelligence/${story.slug}`}>{story.title}</Link>
+                        </h3>
+                        <p className="text-xs text-[var(--text2)] line-clamp-2 leading-relaxed">
+                          {story.excerpt}
+                        </p>
+                      </div>
+
+                      <div className="w-24 sm:w-28 h-20 sm:h-24 relative rounded-lg overflow-hidden shrink-0 bg-[var(--surface2)]">
+                        <EditorialImage
+                          src={story.image}
+                          alt={story.title}
+                          category={story.category}
+                          country={story.country}
+                          fill
+                          className="object-cover group-hover:scale-105 transition-transform duration-300"
+                        />
+                      </div>
+                    </div>
+                  </article>
+                ))}
+              </div>
+
+              {/* Newsroom Dispatch Tip Line */}
+              <div className="pt-4 border-t border-[var(--border)] flex items-center justify-between text-xs text-[var(--text3)]">
+                <div>
+                  <span className="font-semibold text-[var(--text)] block">Newsroom Confidential Tips</span>
+                  <span>Encrypted channels for leaks & official briefings</span>
+                </div>
                 <Link
-                  href={`/intelligence/${heroArticle.slug}`}
-                  className="group block relative w-full h-64 sm:h-80 lg:h-96 rounded-xl overflow-hidden border border-[var(--border)]"
+                  href="/contact"
+                  className="font-bold text-[var(--accent)] hover:underline inline-flex items-center gap-1 shrink-0 ml-3"
                 >
-                  <Image
-                    src={heroArticle.image}
-                    alt={heroArticle.imageAlt}
-                    fill
-                    priority
-                    sizes="(max-width: 1024px) 100vw, 40vw"
-                    className="object-cover transition-transform duration-500 group-hover:scale-105"
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-80 group-hover:opacity-60 transition-opacity" />
-                  <div className="absolute bottom-4 left-4 right-4 text-white text-xs font-medium">
-                    <span className="inline-block px-2.5 py-1 rounded bg-black/60 backdrop-blur-md border border-white/20">
-                      High-Density Sovereign Report
-                    </span>
-                  </div>
+                  Submit Briefing <ChevronRight size={13} />
                 </Link>
               </div>
-
             </div>
           </div>
         </section>
 
         {/* ─────────────────────────────────────────────────────────────
-            3. ASYMMETRIC FEATURED INTELLIGENCE GRID
+            SECTION 04 — LATEST AI NEWS (CONTINUOUS VERTICAL EDITORIAL RIVER)
+            NO CARDS, NO BOXES — SCROLL DOWN AND READ STORY BY STORY
             ───────────────────────────────────────────────────────────── */}
-        <section aria-labelledby="featured-heading">
+        <section aria-label="Latest AI News Stream" className="border-t-2 border-[var(--border)] pt-10">
           <div className="flex items-center justify-between mb-6">
             <div>
-              <div className="section-label">Selected Coverage</div>
-              <h2 id="featured-heading" className="text-xl sm:text-2xl font-bold tracking-tight">
-                Featured Regional Developments
+              <span className="text-[11px] font-bold uppercase tracking-wider text-[var(--accent)] block">
+                Continuous Wire
+              </span>
+              <h2 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-[var(--text)]">
+                Latest AI News
               </h2>
             </div>
-            <Link
-              href="/intelligence"
-              className="text-xs sm:text-sm font-semibold text-[var(--accent)] hover:text-[var(--accent2)] flex items-center gap-1 group transition-colors"
-            >
-              All Intelligence
-              <ArrowRight size={14} className="group-hover:translate-x-1 transition-transform" />
-            </Link>
+            <span className="text-xs text-[var(--text3)] hidden sm:inline font-medium">
+              Live chronological stream from regional and global desks
+            </span>
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+          {/* Continuous Ordered Editorial Flow: Left Primary Feed + Right Live Wire Briefs */}
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-10 items-start">
             
-            {/* Secondary Column 1 (Left 7 Cols) */}
-            <div className="lg:col-span-7 space-y-5">
-              {secondaryFeatured.map((article) => (
-                <div
+            {/* The Main Continuous News River (8 cols) — Divided by hairlines */}
+            <div className="lg:col-span-8 divide-y divide-[var(--border)]">
+              {latestNews.slice(0, visibleNewsCount).map((article, index) => (
+                <article
                   key={article.id}
-                  className="card p-4 sm:p-5 flex flex-col sm:flex-row gap-5 hover:border-[var(--accent)] transition-all duration-200"
+                  className="py-6 first:pt-0 group transition-colors"
                 >
-                  <div className="sm:w-48 h-40 relative rounded-lg overflow-hidden shrink-0 border border-[var(--border)]">
-                    <Image
-                      src={article.image}
-                      alt={article.imageAlt}
-                      fill
-                      sizes="(max-width: 640px) 100vw, 200px"
-                      className="object-cover transition-transform duration-300 hover:scale-105"
-                    />
-                    <div className="absolute top-2 left-2">
-                      <CategoryBadge category={article.category} size="sm" />
+                  <div className="flex flex-col-reverse sm:flex-row gap-4 sm:gap-6 items-start justify-between">
+                    {/* Story Content */}
+                    <div className="flex-1 space-y-2 min-w-0">
+                      <div className="flex items-center gap-2 text-[10px] text-[var(--text3)]">
+                        <span className="font-bold text-[var(--accent)] uppercase tracking-wider">
+                          {article.country}
+                        </span>
+                        <span>•</span>
+                        <span className="font-semibold text-[var(--text2)] uppercase">
+                          {article.category}
+                        </span>
+                        <span>•</span>
+                        <span>{formatDateShort(article.publishedAt)}</span>
+                        <span>•</span>
+                        <span>{article.readingTime} min read</span>
+                      </div>
+
+                      <h3 className={`${index === 0 ? 'text-xl sm:text-2xl' : 'text-base sm:text-lg'} font-bold text-[var(--text)] group-hover:text-[var(--accent)] transition-colors leading-snug`}>
+                        <Link href={`/intelligence/${article.slug}`}>{article.title}</Link>
+                      </h3>
+
+                      <p className="text-xs sm:text-sm text-[var(--text2)] line-clamp-2 leading-relaxed">
+                        {article.excerpt}
+                      </p>
+
+                      <div className="pt-2 flex items-center justify-between text-xs text-[var(--text3)]">
+                        <div className="flex items-center gap-3">
+                          <span className="font-medium text-[var(--text)]">By {article.author.name}</span>
+                          <span>•</span>
+                          <Link
+                            href={`/intelligence/${article.slug}`}
+                            className="font-semibold text-[var(--accent)] hover:underline inline-flex items-center gap-0.5"
+                          >
+                            Read report <ChevronRight size={12} />
+                          </Link>
+                        </div>
+
+                        {/* Interactive Tools */}
+                        <div className="flex items-center gap-1">
+                          <button
+                            onClick={() => toggleBookmark(article.slug)}
+                            className={`p-1 rounded hover:bg-[var(--surface2)] transition-colors cursor-pointer ${
+                              savedSlugs.includes(article.slug) ? 'text-[var(--accent)]' : 'text-[var(--text3)]'
+                            }`}
+                            title="Bookmark story"
+                            aria-label="Bookmark story"
+                          >
+                            <Bookmark size={14} className={savedSlugs.includes(article.slug) ? 'fill-current' : ''} />
+                          </button>
+                          <button
+                            onClick={() => handleShare(article)}
+                            className="p-1 rounded hover:bg-[var(--surface2)] text-[var(--text3)] transition-colors cursor-pointer"
+                            title="Copy link"
+                            aria-label="Copy story link"
+                          >
+                            {copiedSlug === article.slug ? <Check size={14} className="text-emerald-500" /> : <Share2 size={14} />}
+                          </button>
+                        </div>
+                      </div>
                     </div>
+
+                    {/* Side Thumbnail */}
+                    <Link
+                      href={`/intelligence/${article.slug}`}
+                      className={`relative rounded-lg overflow-hidden shrink-0 bg-[var(--surface2)] block ${
+                        index === 0
+                          ? 'w-full sm:w-56 md:w-64 aspect-[16/10]'
+                          : 'w-full sm:w-40 md:w-48 aspect-[16/10]'
+                      }`}
+                    >
+                      <EditorialImage
+                        src={article.image}
+                        alt={article.title}
+                        category={article.category}
+                        country={article.country}
+                        fill
+                        className="object-cover group-hover:scale-104 transition-transform duration-300"
+                      />
+                    </Link>
+                  </div>
+                </article>
+              ))}
+
+              {/* Load More Reporting Button in the Continuous Flow */}
+              {visibleNewsCount < latestNews.length && (
+                <div className="pt-8 text-center">
+                  <button
+                    onClick={handleLoadMore}
+                    disabled={isLoadingMore}
+                    className="btn-ghost text-xs font-bold uppercase tracking-wider px-6 py-2.5 border border-[var(--border)] hover:border-[var(--accent)] inline-flex items-center gap-2 cursor-pointer transition-colors"
+                  >
+                    {isLoadingMore ? (
+                      <>
+                        <span className="w-3.5 h-3.5 border-2 border-[var(--accent)] border-t-transparent rounded-full animate-spin" />
+                        <span>Loading subsequent dispatches...</span>
+                      </>
+                    ) : (
+                      <>
+                        <span>Load Next Dispatches</span>
+                        <ChevronRight size={14} />
+                      </>
+                    )}
+                  </button>
+                </div>
+              )}
+            </div>
+
+            {/* Right Fast-Wire Sidebar (4 cols) — Chronological Briefs River */}
+            <div className="lg:col-span-4 space-y-6 lg:border-l lg:border-[var(--border)] lg:pl-8">
+              <div className="flex items-center justify-between pb-2 border-b-2 border-[var(--border)]">
+                <span className="text-[11px] font-black uppercase tracking-wider text-[var(--accent)] flex items-center gap-1.5">
+                  <span className="w-2 h-2 rounded-full bg-[var(--accent)] animate-pulse" />
+                  Fast Wire Briefs
+                </span>
+                <span className="text-[10px] text-[var(--text3)] font-semibold uppercase">Real-Time</span>
+              </div>
+
+              <div className="divide-y divide-[var(--border)]">
+                {latestNews.slice(0, 8).map((item) => (
+                  <div key={item.id} className="py-3.5 first:pt-0 group space-y-1.5">
+                    <div className="flex items-center justify-between text-[10px] text-[var(--text3)]">
+                      <span className="font-bold text-[var(--accent)] uppercase">{item.country}</span>
+                      <span>{formatDateShort(item.publishedAt)}</span>
+                    </div>
+                    <h4 className="text-xs sm:text-[13px] font-bold text-[var(--text)] leading-snug group-hover:text-[var(--accent)] transition-colors line-clamp-2">
+                      <Link href={`/intelligence/${item.slug}`}>{item.title}</Link>
+                    </h4>
+                    <p className="text-[11px] text-[var(--text2)] line-clamp-2 leading-relaxed">
+                      {item.excerpt}
+                    </p>
+                  </div>
+                ))}
+              </div>
+
+              {/* Wire Editorial Stat Callout */}
+              <div className="p-4 rounded-lg bg-[var(--surface2)]/40 border-l-2 border-[var(--accent)] text-xs space-y-1 text-[var(--text2)]">
+                <span className="font-bold text-[var(--text)] uppercase text-[10px] tracking-wider block">
+                  MENA Compute Intelligence
+                </span>
+                <p className="leading-relaxed">
+                  Track regional sovereign cloud commitments, GCC accelerator funding rounds, and Arabic LLM benchmark rankings in real time.
+                </p>
+              </div>
+            </div>
+
+          </div>
+        </section>
+
+        {/* ─────────────────────────────────────────────────────────────
+            SECTION 05 — AI ACROSS MENA (REGIONAL BUREAUS BROADSHEET)
+            NO CARDS, NO BOXES — CONTINUOUS REGIONAL STREAM
+            ───────────────────────────────────────────────────────────── */}
+        <section aria-label="AI Across MENA" className="border-t-2 border-[var(--border)] pt-10">
+          <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-6">
+            <div>
+              <span className="text-[11px] font-bold uppercase tracking-wider text-[var(--accent)] block">
+                Regional Bureaus
+              </span>
+              <h2 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-[var(--text)]">
+                AI Across MENA
+              </h2>
+            </div>
+            <p className="text-xs text-[var(--text3)] max-w-md">
+              National strategies, compute infrastructure, and startup ecosystems reported by local correspondents.
+            </p>
+          </div>
+
+          {/* Country Selector Filter Pills */}
+          <div className="flex items-center gap-1.5 overflow-x-auto pb-3 mb-6 no-scrollbar text-xs">
+            {menaCountries.map((c) => (
+              <button
+                key={c}
+                onClick={() => setSelectedMenaCountry(c)}
+                className={`px-3 py-1.5 rounded-full font-semibold transition-all shrink-0 cursor-pointer ${
+                  selectedMenaCountry === c
+                    ? 'bg-[var(--accent)] text-white shadow-xs'
+                    : 'bg-[var(--surface)] border border-[var(--border)] text-[var(--text2)] hover:text-[var(--text)] hover:border-[var(--border2)]'
+                }`}
+              >
+                {c}
+              </button>
+            ))}
+          </div>
+
+          {/* Continuous Regional River: Lead Regional Story (7 cols) + Vertical Stack (5 cols) */}
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-10 items-start">
+            {menaArticles[0] && (
+              <article className="lg:col-span-7 space-y-3.5 group">
+                <Link
+                  href={`/intelligence/${menaArticles[0].slug}`}
+                  className="block relative aspect-[16/9] rounded-xl overflow-hidden bg-[var(--surface2)]"
+                >
+                  <EditorialImage
+                    src={menaArticles[0].image}
+                    alt={menaArticles[0].title}
+                    category={menaArticles[0].category}
+                    country={menaArticles[0].country}
+                    fill
+                    className="object-cover group-hover:scale-103 transition-transform duration-300"
+                  />
+                  <span className="absolute top-3 left-3 px-2.5 py-1 rounded bg-[var(--accent)] text-white text-[10px] font-black uppercase tracking-wider shadow-sm">
+                    {menaArticles[0].country}
+                  </span>
+                </Link>
+
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2 text-xs text-[var(--text3)]">
+                    <span className="font-bold text-[var(--accent)] uppercase">{menaArticles[0].category}</span>
+                    <span>•</span>
+                    <span>{formatDateShort(menaArticles[0].publishedAt)}</span>
+                    <span>•</span>
+                    <span>{menaArticles[0].readingTime} min read</span>
                   </div>
 
-                  <div className="flex-1 flex flex-col justify-between space-y-2">
-                    <div className="space-y-1.5">
-                      <div className="flex items-center gap-2">
-                        <CountryPill country={article.country} />
-                        <span className="text-[11px] text-[var(--text3)]">
-                          {formatDateShort(article.publishedAt)}
+                  <h3 className="text-xl sm:text-2xl font-bold tracking-tight text-[var(--text)] leading-snug group-hover:text-[var(--accent)] transition-colors">
+                    <Link href={`/intelligence/${menaArticles[0].slug}`}>{menaArticles[0].title}</Link>
+                  </h3>
+
+                  <p className="text-sm text-[var(--text2)] leading-relaxed line-clamp-3">
+                    {menaArticles[0].excerpt}
+                  </p>
+
+                  <div className="pt-2 text-xs text-[var(--text3)] flex items-center justify-between border-t border-[var(--border)]">
+                    <span>By {menaArticles[0].author.name}</span>
+                    <Link
+                      href={`/intelligence/${menaArticles[0].slug}`}
+                      className="font-bold text-[var(--accent)] hover:underline inline-flex items-center gap-1"
+                    >
+                      Read full regional briefing <ChevronRight size={13} />
+                    </Link>
+                  </div>
+                </div>
+              </article>
+            )}
+
+            {/* Vertical River of Regional Dispatches with Hairlines */}
+            <div className="lg:col-span-5 divide-y divide-[var(--border)]">
+              {menaArticles.slice(1, 5).map((article) => (
+                <article key={article.id} className="py-4 first:pt-0 last:pb-0 group space-y-2">
+                  <div className="flex gap-4 items-start">
+                    <div className="flex-1 space-y-1.5 min-w-0">
+                      <div className="flex items-center gap-2 text-[10px] text-[var(--text3)]">
+                        <span className="font-bold text-[var(--accent)] uppercase tracking-wider">
+                          {article.country}
                         </span>
+                        <span>•</span>
+                        <span>{article.readingTime} min</span>
                       </div>
-                      <h3 className="font-bold text-base sm:text-lg leading-snug line-clamp-2">
-                        <Link
-                          href={`/intelligence/${article.slug}`}
-                          className="hover:text-[var(--accent)] transition-colors"
-                        >
-                          {article.title}
-                        </Link>
-                      </h3>
+                      <h4 className="text-sm sm:text-base font-bold text-[var(--text)] leading-snug group-hover:text-[var(--accent)] transition-colors line-clamp-2">
+                        <Link href={`/intelligence/${article.slug}`}>{article.title}</Link>
+                      </h4>
                       <p className="text-xs text-[var(--text2)] line-clamp-2 leading-relaxed">
                         {article.excerpt}
                       </p>
                     </div>
 
-                    <div className="flex items-center justify-between pt-2 border-t border-[var(--border)] text-xs text-[var(--text3)]">
-                      <span>By {article.author.name}</span>
-                      <Link
-                        href={`/intelligence/${article.slug}`}
-                        className="text-[var(--accent)] font-semibold flex items-center gap-1 hover:underline text-xs"
-                      >
-                        Read briefing <ChevronRight size={12} />
-                      </Link>
-                    </div>
+                    <Link
+                      href={`/intelligence/${article.slug}`}
+                      className="w-24 sm:w-28 h-20 sm:h-22 relative rounded-lg overflow-hidden shrink-0 bg-[var(--surface2)] block"
+                    >
+                      <EditorialImage
+                        src={article.image}
+                        alt={article.title}
+                        category={article.category}
+                        country={article.country}
+                        fill
+                        className="object-cover group-hover:scale-105 transition-transform duration-300"
+                      />
+                    </Link>
                   </div>
-                </div>
+                </article>
               ))}
             </div>
-
-            {/* Trending Column 2 (Right 5 Cols) */}
-            <div className="lg:col-span-5 card p-5 flex flex-col justify-between bg-[var(--surface)]">
-              <div>
-                <div className="flex items-center justify-between pb-3 border-b border-[var(--border)] mb-4">
-                  <h3 className="text-xs font-bold uppercase tracking-wider text-[var(--text)] flex items-center gap-2">
-                    <TrendingUp size={14} className="text-[var(--highlight)]" />
-                    High Velocity Dispatch
-                  </h3>
-                  <span className="text-[11px] text-[var(--text3)]">Past 48h</span>
-                </div>
-
-                <div className="divide-y divide-[var(--border)]">
-                  {trendingStories.map((story, idx) => (
-                    <article key={story.id} className="py-3.5 first:pt-0 last:pb-0 group">
-                      <div className="flex items-start gap-3">
-                        <span className="text-2xl font-black text-[var(--text3)]/50 group-hover:text-[var(--accent)] transition-colors">
-                          0{idx + 1}
-                        </span>
-                        <div className="space-y-1 flex-1">
-                          <div className="flex items-center gap-2 text-[10px]">
-                            <span className="font-semibold text-[var(--accent)] uppercase">{story.country}</span>
-                            <span>•</span>
-                            <span className="text-[var(--text3)]">{story.readingTime} min</span>
-                          </div>
-                          <h4 className="text-xs sm:text-sm font-semibold leading-snug">
-                            <Link
-                              href={`/intelligence/${story.slug}`}
-                              className="group-hover:text-[var(--accent)] transition-colors line-clamp-2"
-                            >
-                              {story.title}
-                            </Link>
-                          </h4>
-                        </div>
-                      </div>
-                    </article>
-                  ))}
-                </div>
-              </div>
-
-              <div className="mt-5 pt-4 border-t border-[var(--border)]">
-                <Link
-                  href="/intelligence"
-                  className="w-full btn-ghost text-xs justify-center py-2"
-                >
-                  View All Trending Intelligence
-                </Link>
-              </div>
-            </div>
-
           </div>
         </section>
 
         {/* ─────────────────────────────────────────────────────────────
-            4. REGIONAL AI ECOSYSTEM SELECTOR
+            SECTION 06 — GLOBAL AI NEWS (INTERNATIONAL DESK BROADSHEET)
             ───────────────────────────────────────────────────────────── */}
-        <section className="card p-6 md:p-8 bg-[var(--surface2)]/50 border border-[var(--border)] rounded-2xl">
-          <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-6">
+        <section aria-label="Global AI News" className="border-t-2 border-[var(--border)] pt-10">
+          <div className="flex items-center justify-between mb-6">
             <div>
-              <div className="section-label">Geographical Scope</div>
-              <h2 className="text-xl sm:text-2xl font-bold tracking-tight">
-                MENA AI National Strategies
+              <span className="text-[11px] font-bold uppercase tracking-wider text-[var(--accent)] block">
+                International Context
+              </span>
+              <h2 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-[var(--text)]">
+                Global AI Developments
               </h2>
             </div>
-            <p className="text-xs text-[var(--text2)] max-w-md">
-              Select a regional sovereign market to review national AI blueprints, institutional governance bodies, and committed compute investments.
-            </p>
+            <Link href="/world" className="text-xs font-bold text-[var(--accent)] hover:underline flex items-center gap-1">
+              View all international reporting <ArrowRight size={13} />
+            </Link>
           </div>
 
-          {/* Country Selection Tabs */}
-          <div className="flex flex-wrap gap-2 pb-4 border-b border-[var(--border)]">
-            {COUNTRY_PROFILES.map((c) => (
-              <button
-                key={c.id}
-                onClick={() => setActiveCountryId(c.id)}
-                className={`px-3.5 py-1.5 rounded-full text-xs font-semibold flex items-center gap-1.5 transition-all duration-200 cursor-pointer ${
-                  activeCountryId === c.id
-                    ? 'bg-[var(--accent)] text-white shadow-sm'
-                    : 'bg-[var(--surface)] text-[var(--text2)] border border-[var(--border)] hover:border-[var(--accent)] hover:text-[var(--text)]'
-                }`}
-              >
-                <span>{c.flag}</span>
-                <span>{c.name}</span>
-              </button>
-            ))}
-          </div>
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-10 items-start">
+            {/* Primary International Feature (7 cols) */}
+            {globalArticles[0] && (
+              <article className="lg:col-span-7 space-y-3.5 group">
+                <Link
+                  href={`/intelligence/${globalArticles[0].slug}`}
+                  className="block relative aspect-[16/9] rounded-xl overflow-hidden bg-[var(--surface2)]"
+                >
+                  <EditorialImage
+                    src={globalArticles[0].image}
+                    alt={globalArticles[0].title}
+                    category={globalArticles[0].category}
+                    country={globalArticles[0].country}
+                    fill
+                    className="object-cover group-hover:scale-103 transition-transform duration-300"
+                  />
+                  <span className="absolute top-3 left-3 px-2.5 py-1 rounded bg-[var(--accent)] text-white text-[10px] font-black uppercase tracking-wider shadow-sm">
+                    {globalArticles[0].country}
+                  </span>
+                </Link>
 
-          {/* Selected Country Dossier */}
-          <AnimatePresence mode="wait">
-            <motion.div
-              key={activeCountry.id}
-              initial={{ opacity: 0, y: 6 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -6 }}
-              transition={{ duration: 0.2 }}
-              className="mt-6 grid grid-cols-1 lg:grid-cols-12 gap-6 items-start"
-            >
-              {/* Summary and Strategy */}
-              <div className="lg:col-span-7 space-y-4">
-                <div className="flex items-center gap-3">
-                  <span className="text-3xl">{activeCountry.flag}</span>
-                  <div>
-                    <h3 className="text-xl font-bold">{activeCountry.name}</h3>
-                    <p className="text-xs text-[var(--text3)]">Capital: {activeCountry.capital}</p>
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2 text-xs text-[var(--text3)]">
+                    <span className="font-bold text-[var(--accent)] uppercase">{globalArticles[0].category}</span>
+                    <span>•</span>
+                    <span>{formatDateShort(globalArticles[0].publishedAt)}</span>
+                    <span>•</span>
+                    <span>{globalArticles[0].readingTime} min read</span>
                   </div>
-                </div>
 
-                <p className="text-sm text-[var(--text2)] leading-relaxed">
-                  {activeCountry.description}
-                </p>
+                  <h3 className="text-xl sm:text-2xl font-extrabold tracking-tight text-[var(--text)] leading-snug group-hover:text-[var(--accent)] transition-colors">
+                    <Link href={`/intelligence/${globalArticles[0].slug}`}>{globalArticles[0].title}</Link>
+                  </h3>
 
-                <div className="p-3.5 rounded-xl bg-[var(--surface)] border border-[var(--border)]">
-                  <div className="text-[11px] font-bold uppercase tracking-wider text-[var(--accent)] mb-1">
-                    National Blueprint
-                  </div>
-                  <p className="text-xs font-medium text-[var(--text)]">
-                    {activeCountry.aiStrategy}
+                  <p className="text-sm text-[var(--text2)] leading-relaxed line-clamp-3">
+                    {globalArticles[0].excerpt}
                   </p>
                 </div>
-              </div>
+              </article>
+            )}
 
-              {/* Data & Institutional Indicators */}
-              <div className="lg:col-span-5 grid grid-cols-1 sm:grid-cols-2 gap-3.5">
-                <div className="card p-3.5 bg-[var(--surface)]">
-                  <div className="text-[10px] font-bold uppercase tracking-wider text-[var(--text3)]">
-                    Committed Capital
-                  </div>
-                  <div className="text-base font-extrabold text-[var(--accent)] mt-1">
-                    {activeCountry.aiInvestment}
-                  </div>
-                  <div className="text-[11px] text-[var(--text3)] mt-0.5">Sovereign & Private</div>
-                </div>
+            {/* Supporting Global Dispatches Stack (5 cols) */}
+            <div className="lg:col-span-5 divide-y divide-[var(--border)]">
+              {globalArticles.slice(1, 5).map((story) => (
+                <article key={story.id} className="py-3.5 first:pt-0 last:pb-0 group">
+                  <div className="flex gap-4 items-start">
+                    <div className="flex-1 space-y-1.5 min-w-0">
+                      <div className="flex items-center gap-2 text-[10px] text-[var(--text3)]">
+                        <span className="font-bold text-[var(--accent)] uppercase">{story.country}</span>
+                        <span>•</span>
+                        <span>{story.readingTime} min</span>
+                      </div>
+                      <h4 className="text-xs sm:text-sm font-bold text-[var(--text)] leading-snug group-hover:text-[var(--accent)] transition-colors line-clamp-2">
+                        <Link href={`/intelligence/${story.slug}`}>{story.title}</Link>
+                      </h4>
+                      <p className="text-[11px] text-[var(--text2)] line-clamp-2 leading-relaxed">
+                        {story.excerpt}
+                      </p>
+                    </div>
 
-                <div className="card p-3.5 bg-[var(--surface)]">
-                  <div className="text-[10px] font-bold uppercase tracking-wider text-[var(--text3)]">
-                    Projected GDP Value
+                    <Link
+                      href={`/intelligence/${story.slug}`}
+                      className="w-24 sm:w-28 h-20 relative rounded-lg overflow-hidden shrink-0 bg-[var(--surface2)] block"
+                    >
+                      <EditorialImage
+                        src={story.image}
+                        alt={story.title}
+                        category={story.category}
+                        country={story.country}
+                        fill
+                        className="object-cover group-hover:scale-105 transition-transform duration-300"
+                      />
+                    </Link>
                   </div>
-                  <div className="text-base font-extrabold text-[var(--accent2)] mt-1">
-                    {activeCountry.gdpAI || 'Strategic Multiplier'}
-                  </div>
-                  <div className="text-[11px] text-[var(--text3)] mt-0.5">Economic Diversification</div>
-                </div>
-
-                <div className="card p-3.5 bg-[var(--surface)] sm:col-span-2">
-                  <div className="text-[10px] font-bold uppercase tracking-wider text-[var(--text3)] mb-1.5">
-                    Lead Regulatory Body
-                  </div>
-                  <div className="text-xs font-semibold text-[var(--text)] flex items-center gap-1.5">
-                    <Shield size={14} className="text-[var(--accent)] shrink-0" />
-                    <span>{activeCountry.governmentBody}</span>
-                  </div>
-                </div>
-
-                <div className="card p-3.5 bg-[var(--surface)] sm:col-span-2">
-                  <div className="text-[10px] font-bold uppercase tracking-wider text-[var(--text3)] mb-1.5">
-                    Key National Pillars
-                  </div>
-                  <div className="flex flex-wrap gap-1.5">
-                    {activeCountry.keyInitiatives.slice(0, 3).map((init, i) => (
-                      <span
-                        key={i}
-                        className="text-[10px] px-2 py-0.5 rounded bg-[var(--surface2)] text-[var(--text2)] border border-[var(--border)]"
-                      >
-                        {init}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            </motion.div>
-          </AnimatePresence>
-        </section>
-
-        {/* ─────────────────────────────────────────────────────────────
-            5. LATEST AI INTELLIGENCE FEED
-            ───────────────────────────────────────────────────────────── */}
-        <section aria-labelledby="latest-heading">
-          <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 mb-6">
-            <div>
-              <div className="section-label">Editorial Stream</div>
-              <h2 id="latest-heading" className="text-xl sm:text-2xl font-bold tracking-tight">
-                Latest Market Intelligence
-              </h2>
-            </div>
-
-            {/* Filter Pills */}
-            <div className="flex flex-wrap gap-1.5">
-              {categories.map((cat) => (
-                <button
-                  key={cat}
-                  onClick={() => setSelectedCategory(cat)}
-                  className={`px-3 py-1 rounded-full text-xs font-medium transition-colors cursor-pointer ${
-                    selectedCategory === cat
-                      ? 'bg-[var(--accent)] text-white'
-                      : 'bg-[var(--surface)] text-[var(--text2)] border border-[var(--border)] hover:bg-[var(--surface2)]'
-                  }`}
-                >
-                  {cat}
-                </button>
+                </article>
               ))}
             </div>
           </div>
+        </section>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {filteredArticles.map((article) => (
-              <div
-                key={article.id}
-                className="card flex flex-col justify-between overflow-hidden group hover:border-[var(--accent)] transition-all duration-200"
-              >
-                <div>
-                  <div className="h-44 relative w-full overflow-hidden bg-[var(--surface2)]">
-                    <Image
-                      src={article.image}
-                      alt={article.imageAlt}
-                      fill
-                      sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-                      className="object-cover transition-transform duration-300 group-hover:scale-105"
-                    />
-                    <div className="absolute top-2.5 left-2.5 flex items-center gap-1.5">
-                      <CategoryBadge category={article.category} size="sm" />
-                      <CountryPill country={article.country} />
-                    </div>
+        {/* ─────────────────────────────────────────────────────────────
+            SECTION 07 — AI & BUSINESS (JOURNALISTIC REPORTING)
+            ───────────────────────────────────────────────────────────── */}
+        <section aria-label="AI and Business" className="border-t-2 border-[var(--border)] pt-10">
+          <div className="flex items-center justify-between mb-6">
+            <div>
+              <span className="text-[11px] font-bold uppercase tracking-wider text-[var(--accent)] block">
+                Corporate Transformation & Capital
+              </span>
+              <h2 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-[var(--text)]">
+                AI & Business
+              </h2>
+            </div>
+            <Link href="/business" className="text-xs font-bold text-[var(--accent)] hover:underline flex items-center gap-1">
+              More Business Coverage <ArrowRight size={13} />
+            </Link>
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-10 items-start">
+            {/* Primary Business Story (7 cols) */}
+            {businessArticles[0] && (
+              <article className="lg:col-span-7 space-y-3 group">
+                <Link
+                  href={`/intelligence/${businessArticles[0].slug}`}
+                  className="block relative aspect-[16/9] rounded-xl overflow-hidden bg-[var(--surface2)]"
+                >
+                  <EditorialImage
+                    src={businessArticles[0].image}
+                    alt={businessArticles[0].title}
+                    category={businessArticles[0].category}
+                    country={businessArticles[0].country}
+                    fill
+                    className="object-cover group-hover:scale-103 transition-transform duration-300"
+                  />
+                  <span className="absolute top-3 left-3 px-2.5 py-1 rounded bg-[var(--accent)] text-white text-[10px] font-black uppercase tracking-wider shadow-sm">
+                    {businessArticles[0].country}
+                  </span>
+                </Link>
+                <div className="space-y-1.5">
+                  <div className="text-[10px] font-bold text-[var(--accent)] uppercase">
+                    {businessArticles[0].country} • Enterprise AI Capital
                   </div>
+                  <h3 className="text-xl sm:text-2xl font-bold text-[var(--text)] group-hover:text-[var(--accent)] transition-colors leading-snug">
+                    <Link href={`/intelligence/${businessArticles[0].slug}`}>{businessArticles[0].title}</Link>
+                  </h3>
+                  <p className="text-sm text-[var(--text2)] leading-relaxed line-clamp-3">
+                    {businessArticles[0].excerpt}
+                  </p>
+                </div>
+              </article>
+            )}
 
-                  <div className="p-4 space-y-2">
-                    <div className="flex items-center gap-2 text-[11px] text-[var(--text3)]">
-                      <span>{formatDateShort(article.publishedAt)}</span>
-                      <span>•</span>
-                      <span>{article.readingTime} min read</span>
+            {/* Secondary Business Stories Stream (5 cols) */}
+            <div className="lg:col-span-5 divide-y divide-[var(--border)]">
+              {businessArticles.slice(1, 5).map((story) => (
+                <article key={story.id} className="py-3.5 first:pt-0 last:pb-0 space-y-1.5 group">
+                  <div className="text-[10px] text-[var(--text3)] font-semibold uppercase">
+                    {story.country} • {formatDateShort(story.publishedAt)}
+                  </div>
+                  <h4 className="text-sm font-bold text-[var(--text)] group-hover:text-[var(--accent)] transition-colors leading-snug">
+                    <Link href={`/intelligence/${story.slug}`}>{story.title}</Link>
+                  </h4>
+                  <p className="text-xs text-[var(--text2)] line-clamp-2 leading-relaxed">
+                    {story.excerpt}
+                  </p>
+                </article>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        {/* ─────────────────────────────────────────────────────────────
+            SECTION 08 — TECHNOLOGY & INNOVATION (NO CARDS, EDITORIAL RIVER)
+            ───────────────────────────────────────────────────────────── */}
+        <section aria-label="Technology & Innovation" className="border-t-2 border-[var(--border)] pt-10">
+          <div className="flex items-center justify-between mb-6">
+            <div>
+              <span className="text-[11px] font-bold uppercase tracking-wider text-[var(--accent)] block">
+                Foundational Science & Silicon
+              </span>
+              <h2 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-[var(--text)]">
+                Technology & Innovation
+              </h2>
+            </div>
+            <Link href="/technology" className="text-xs font-bold text-[var(--accent)] hover:underline flex items-center gap-1">
+              All Deep Tech <ArrowRight size={13} />
+            </Link>
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-10 items-start">
+            {/* Lead Technical Architecture Feature (7 cols) */}
+            {techInnovationArticles[0] && (
+              <article className="lg:col-span-7 space-y-3 group">
+                <Link
+                  href={`/intelligence/${techInnovationArticles[0].slug}`}
+                  className="block relative aspect-[16/9] rounded-xl overflow-hidden bg-[var(--surface2)]"
+                >
+                  <EditorialImage
+                    src={techInnovationArticles[0].image}
+                    alt={techInnovationArticles[0].title}
+                    category={techInnovationArticles[0].category}
+                    country={techInnovationArticles[0].country}
+                    fill
+                    className="object-cover group-hover:scale-103 transition-transform duration-300"
+                  />
+                  <span className="absolute top-3 left-3 px-2.5 py-1 rounded bg-[var(--accent)] text-white text-[10px] font-black uppercase tracking-wider shadow-sm">
+                    {techInnovationArticles[0].category}
+                  </span>
+                </Link>
+                <div className="space-y-1.5">
+                  <div className="flex items-center gap-2 text-[10px] text-[var(--accent)] font-bold uppercase">
+                    <span>{techInnovationArticles[0].country}</span>
+                    <span>•</span>
+                    <span>{techInnovationArticles[0].readingTime} min read</span>
+                  </div>
+                  <h3 className="text-xl sm:text-2xl font-bold text-[var(--text)] group-hover:text-[var(--accent)] transition-colors leading-snug">
+                    <Link href={`/intelligence/${techInnovationArticles[0].slug}`}>{techInnovationArticles[0].title}</Link>
+                  </h3>
+                  <p className="text-sm text-[var(--text2)] line-clamp-3 leading-relaxed">
+                    {techInnovationArticles[0].excerpt}
+                  </p>
+                </div>
+              </article>
+            )}
+
+            {/* Vertical Tech Dispatches (5 cols) */}
+            <div className="lg:col-span-5 divide-y divide-[var(--border)]">
+              {techInnovationArticles.slice(1, 4).map((item) => (
+                <article key={item.id} className="py-3.5 first:pt-0 last:pb-0 group">
+                  <div className="flex gap-4 items-start">
+                    <div className="flex-1 space-y-1 min-w-0">
+                      <div className="text-[10px] text-[var(--accent)] font-bold uppercase">
+                        {item.country} • {item.readingTime} min
+                      </div>
+                      <h4 className="text-sm font-bold text-[var(--text)] group-hover:text-[var(--accent)] transition-colors leading-snug line-clamp-2">
+                        <Link href={`/intelligence/${item.slug}`}>{item.title}</Link>
+                      </h4>
+                      <p className="text-xs text-[var(--text2)] line-clamp-2 leading-relaxed">
+                        {item.excerpt}
+                      </p>
                     </div>
 
-                    <h3 className="font-bold text-base leading-snug line-clamp-2 group-hover:text-[var(--accent)] transition-colors">
-                      <Link href={`/intelligence/${article.slug}`}>
-                        {article.title}
-                      </Link>
+                    <Link
+                      href={`/intelligence/${item.slug}`}
+                      className="w-24 h-20 relative rounded-lg overflow-hidden shrink-0 bg-[var(--surface2)] block"
+                    >
+                      <EditorialImage
+                        src={item.image}
+                        alt={item.title}
+                        category={item.category}
+                        country={item.country}
+                        fill
+                        className="object-cover group-hover:scale-105 transition-transform duration-300"
+                      />
+                    </Link>
+                  </div>
+                </article>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        {/* ─────────────────────────────────────────────────────────────
+            SECTION 09 — AI IN SPORTS & SOCIETY (BROADSHEET RIVER)
+            NO CARDS, NO BOXES — FLOWING APPLIED AI STORIES
+            ───────────────────────────────────────────────────────────── */}
+        <section aria-label="AI in Sports & Society" className="border-t-2 border-[var(--border)] pt-10">
+          <div className="flex items-center justify-between mb-6">
+            <div>
+              <span className="text-[11px] font-bold uppercase tracking-wider text-[var(--accent)] block">
+                Real-World Impact
+              </span>
+              <h2 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-[var(--text)]">
+                AI in Sports & Society
+              </h2>
+            </div>
+            <Link href="/ai-in-action" className="text-xs font-bold text-[var(--accent)] hover:underline flex items-center gap-1">
+              Explore AI in Action <ArrowRight size={13} />
+            </Link>
+          </div>
+
+          <div className="divide-y divide-[var(--border)]">
+            {sportsSocietyArticles.slice(0, 3).map((story) => (
+              <article key={story.id} className="py-5 first:pt-0 group">
+                <div className="flex flex-col-reverse sm:flex-row gap-5 items-start justify-between">
+                  <div className="flex-1 space-y-1.5 min-w-0">
+                    <div className="flex items-center gap-2 text-[10px] text-[var(--text3)]">
+                      <span className="font-bold text-[var(--accent)] uppercase">{story.country}</span>
+                      <span>•</span>
+                      <span>{formatDateShort(story.publishedAt)}</span>
+                      <span>•</span>
+                      <span>{story.readingTime} min read</span>
+                    </div>
+
+                    <h3 className="text-base sm:text-lg font-bold text-[var(--text)] group-hover:text-[var(--accent)] transition-colors leading-snug">
+                      <Link href={`/intelligence/${story.slug}`}>{story.title}</Link>
                     </h3>
 
-                    <p className="text-xs text-[var(--text2)] line-clamp-2 leading-relaxed">
-                      {article.excerpt}
+                    <p className="text-xs sm:text-sm text-[var(--text2)] line-clamp-2 leading-relaxed">
+                      {story.excerpt}
                     </p>
-                  </div>
-                </div>
 
-                <div className="px-4 py-3 border-t border-[var(--border)] flex items-center justify-between text-xs text-[var(--text3)]">
-                  <span>{article.author.name}</span>
+                    <div className="pt-1 text-xs text-[var(--text3)]">
+                      <Link
+                        href={`/intelligence/${story.slug}`}
+                        className="font-semibold text-[var(--accent)] hover:underline inline-flex items-center gap-0.5"
+                      >
+                        Read dispatch <ChevronRight size={12} />
+                      </Link>
+                    </div>
+                  </div>
+
                   <Link
-                    href={`/intelligence/${article.slug}`}
-                    className="text-[var(--accent)] font-semibold flex items-center gap-1 hover:underline"
+                    href={`/intelligence/${story.slug}`}
+                    className="w-full sm:w-48 aspect-[16/10] relative rounded-lg overflow-hidden shrink-0 bg-[var(--surface2)] block"
                   >
-                    Briefing <ArrowRight size={12} />
+                    <EditorialImage
+                      src={story.image}
+                      alt={story.title}
+                      category={story.category}
+                      country={story.country}
+                      fill
+                      className="object-cover group-hover:scale-104 transition-transform duration-300"
+                    />
                   </Link>
                 </div>
-              </div>
+              </article>
             ))}
-          </div>
-
-          <div className="mt-8 text-center">
-            <Link
-              href="/intelligence"
-              className="btn-ghost text-xs px-6 py-2.5 inline-flex items-center gap-2"
-            >
-              Browse Complete Intelligence Archive
-              <ArrowRight size={14} />
-            </Link>
           </div>
         </section>
 
         {/* ─────────────────────────────────────────────────────────────
-            6. MARKET INTELLIGENCE TERMINAL PREVIEW
+            SECTION 10 — WATCH / VIDEO JOURNALISM
             ───────────────────────────────────────────────────────────── */}
-        <section className="card p-6 md:p-8 bg-gradient-to-br from-[var(--surface)] to-[var(--surface2)] border border-[var(--border)] rounded-2xl relative overflow-hidden">
-          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6 mb-8">
+        <section aria-label="Video Journalism" className="border-t-2 border-[var(--border)] pt-10">
+          <div className="flex items-center justify-between mb-6">
             <div>
-              <div className="flex items-center gap-2 text-xs font-bold text-[var(--accent)] uppercase tracking-widest mb-1.5">
-                <BarChart3 size={15} />
-                Regional Intelligence Terminal
-              </div>
-              <h2 className="text-xl sm:text-2xl font-bold tracking-tight">
-                MENA AI Market Indicators & Benchmarks
-              </h2>
-              <p className="text-xs text-[var(--text2)] mt-1">
-                Executive decision-support metrics synthesized across Middle East & North Africa jurisdictions.
-              </p>
-            </div>
-
-            <div className="flex flex-wrap items-center gap-3">
-              <span className="text-[10px] px-2.5 py-1 rounded bg-[var(--surface)] text-[var(--text3)] border border-[var(--border)]">
-                Illustrative Benchmark Data
+              <span className="text-[11px] font-bold uppercase tracking-wider text-red-500 flex items-center gap-1.5">
+                <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
+                Video Journalism & Field Reports
               </span>
-              <Link
-                href="/dashboard"
-                className="btn-primary text-xs py-2 px-4 shadow-sm flex items-center gap-1.5"
-              >
-                Launch Intelligence Terminal
-                <ArrowRight size={13} />
-              </Link>
+              <h2 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-[var(--text)]">
+                Watch AI Watch MENA
+              </h2>
             </div>
+            <Link href="/video" className="text-xs font-bold text-[var(--accent)] hover:underline flex items-center gap-1">
+              All Video Dispatches <ArrowRight size={13} />
+            </Link>
           </div>
 
-          {/* Metric Cards Grid */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            {DASHBOARD_METRICS.map((metric) => (
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-10 items-start">
+            {/* Featured Playable Video Preview (7 cols) */}
+            {VIDEOS[0] && (
               <div
-                key={metric.id}
-                className="metric-card bg-[var(--surface)] p-4 rounded-xl border border-[var(--border)] hover:border-[var(--accent)] transition-all"
+                onClick={() => setActiveVideo(VIDEOS[0])}
+                className="lg:col-span-7 relative aspect-[16/9] rounded-2xl overflow-hidden cursor-pointer group shadow-lg"
               >
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-semibold text-[var(--text2)]">{metric.label}</span>
-                  <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400 flex items-center gap-0.5">
-                    +{metric.change}%
-                  </span>
-                </div>
-                <div className="text-2xl font-black text-[var(--text)] mt-2 tracking-tight">
-                  {metric.value}
-                </div>
-                <p className="text-[10px] text-[var(--text3)] mt-1 line-clamp-1">{metric.note}</p>
-              </div>
-            ))}
-          </div>
+                <EditorialImage
+                  src={VIDEOS[0].thumbnailUrl}
+                  alt={VIDEOS[0].title}
+                  category={VIDEOS[0].category}
+                  country={VIDEOS[0].country}
+                  fill
+                  className="object-cover group-hover:scale-104 transition-transform duration-500"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/30 to-transparent" />
 
-          {/* Terminal Ecosystem Bar Preview */}
-          <div className="mt-6 p-4 rounded-xl bg-[var(--surface)] border border-[var(--border)]">
-            <div className="flex items-center justify-between text-xs font-semibold text-[var(--text)] mb-3">
-              <span>Sovereign AI Ecosystem Maturity Rank</span>
-              <span className="text-[11px] text-[var(--text3)]">GCC & North Africa</span>
-            </div>
-
-            <div className="space-y-2.5">
-              {[
-                { name: 'Saudi Arabia', score: '94/100', progress: '94%', note: '$40B Capital & Vision 2030 Compute' },
-                { name: 'United Arab Emirates', score: '92/100', progress: '92%', note: 'G42, MBZUAI & AI Ministry Hub' },
-                { name: 'Qatar', score: '78/100', progress: '78%', note: 'QIA Frontier Tech & QF Research' },
-                { name: 'Egypt', score: '74/100', progress: '74%', note: 'Regional Talent & Arabic NLP Scale' },
-              ].map((row, idx) => (
-                <div key={idx} className="space-y-1">
-                  <div className="flex justify-between text-[11px]">
-                    <span className="font-medium text-[var(--text)]">{row.name}</span>
-                    <span className="text-[var(--text3)] text-[10px]">{row.note}</span>
-                    <span className="font-bold text-[var(--accent)]">{row.score}</span>
+                {/* Play Button Icon */}
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <div className="w-16 h-16 rounded-full bg-red-600 text-white flex items-center justify-center shadow-2xl group-hover:scale-110 transition-transform">
+                    <Play size={24} className="fill-current ml-1" />
                   </div>
-                  <div className="w-full bg-[var(--surface2)] h-1.5 rounded-full overflow-hidden">
-                    <div
-                      className="h-full bg-gradient-to-r from-[var(--accent)] to-[var(--accent2)] rounded-full"
-                      style={{ width: row.progress }}
+                </div>
+
+                {/* Video Info Bottom Overlay */}
+                <div className="absolute bottom-4 left-4 right-4 text-white space-y-1.5">
+                  <div className="flex items-center gap-2 text-xs font-semibold text-white/80">
+                    <span className="px-2 py-0.5 rounded bg-red-600 text-[10px] uppercase font-bold text-white">
+                      Featured Documentary
+                    </span>
+                    <span>{VIDEOS[0].duration}</span>
+                    <span>•</span>
+                    <span>Presented by {VIDEOS[0].presenter}</span>
+                  </div>
+                  <h3 className="text-lg sm:text-xl font-bold leading-snug group-hover:text-red-400 transition-colors">
+                    {VIDEOS[0].title}
+                  </h3>
+                </div>
+              </div>
+            )}
+
+            {/* Video Dispatches Stream (5 cols) — No Boxed Tiles, Divided by Hairlines */}
+            <div className="lg:col-span-5 divide-y divide-[var(--border)]">
+              {VIDEOS.slice(1, 4).map((vid) => (
+                <div
+                  key={vid.id}
+                  onClick={() => setActiveVideo(vid)}
+                  className="py-3.5 first:pt-0 last:pb-0 cursor-pointer flex gap-3.5 group items-start"
+                >
+                  <div className="relative w-32 aspect-[16/10] rounded-lg overflow-hidden shrink-0 bg-[var(--surface2)]">
+                    <EditorialImage
+                      src={vid.thumbnailUrl}
+                      alt={vid.title}
+                      category={vid.category}
+                      country={vid.country}
+                      fill
+                      className="object-cover group-hover:scale-105 transition-transform duration-300"
                     />
+                    <span className="absolute bottom-1 right-1 px-1.5 py-0.5 rounded bg-black/80 text-white text-[9px] font-mono font-bold">
+                      {vid.duration}
+                    </span>
+                    <div className="absolute inset-0 flex items-center justify-center bg-black/20 group-hover:bg-transparent transition-colors">
+                      <Play size={16} className="text-white fill-current opacity-80 group-hover:opacity-100" />
+                    </div>
+                  </div>
+
+                  <div className="space-y-1 min-w-0">
+                    <span className="text-[10px] font-bold text-[var(--accent)] uppercase">{vid.country}</span>
+                    <h4 className="text-xs sm:text-sm font-semibold text-[var(--text)] group-hover:text-[var(--accent)] transition-colors line-clamp-2 leading-snug">
+                      {vid.title}
+                    </h4>
+                    <span className="text-[10px] text-[var(--text3)] block">
+                      {vid.presenter} • {vid.views} views
+                    </span>
                   </div>
                 </div>
               ))}
@@ -638,249 +1024,184 @@ export default function HomePage() {
         </section>
 
         {/* ─────────────────────────────────────────────────────────────
-            7. FUNDING & DEALS HIGHLIGHTS
+            SECTION 11 — FEATURES, OPINION & ANALYSIS
+            AUTHENTIC OP-ED BROADSHEET WITH SERIF RULES & PULL-QUOTES
+            NO CARD BOXES
             ───────────────────────────────────────────────────────────── */}
-        <section aria-labelledby="funding-heading">
+        <section aria-label="Opinion and Analysis" className="border-t-2 border-[var(--border)] pt-10">
           <div className="flex items-center justify-between mb-6">
             <div>
-              <div className="section-label">Venture & Capital</div>
-              <h2 id="funding-heading" className="text-xl sm:text-2xl font-bold tracking-tight">
-                Recent Investment Rounds
+              <span className="text-[11px] font-bold uppercase tracking-wider text-[var(--accent)] block">
+                Ideas, Debates & Longform
+              </span>
+              <h2 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-[var(--text)]">
+                Opinion & Analysis
               </h2>
             </div>
-            <Link
-              href="/funding"
-              className="text-xs sm:text-sm font-semibold text-[var(--accent)] hover:text-[var(--accent2)] flex items-center gap-1 group"
-            >
-              All Deals Tracker
-              <ArrowRight size={14} className="group-hover:translate-x-1 transition-transform" />
+            <Link href="/opinion" className="text-xs font-bold text-[var(--accent)] hover:underline flex items-center gap-1">
+              Read all opinions <ArrowRight size={13} />
             </Link>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-            {recentDeals.map((deal) => (
-              <div
-                key={deal.id}
-                className="card p-5 bg-[var(--surface)] hover:border-[var(--accent)] transition-all space-y-3.5"
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 lg:gap-12 items-start">
+            {opinionAnalysisArticles.slice(0, 2).map((essay, idx) => (
+              <article
+                key={essay.id}
+                className={`space-y-4 group ${
+                  idx === 0 ? 'md:border-r md:border-[var(--border)] md:pr-8 lg:pr-12' : ''
+                }`}
               >
-                <div className="flex items-center justify-between">
-                  <span className="text-base font-bold text-[var(--text)]">{deal.company}</span>
-                  <CountryPill country={deal.country} />
-                </div>
-
-                <div className="flex items-baseline gap-2">
-                  <span className="text-2xl font-extrabold text-[var(--highlight)]">
-                    ${deal.amount}{deal.amountUnit}
+                <div className="flex items-center justify-between text-xs text-[var(--text3)] border-b border-[var(--border)] pb-2">
+                  <span className="font-bold text-[var(--accent)] text-[10px] uppercase tracking-wider">
+                    {essay.country} • Editorial Essay
                   </span>
-                  <span className="text-xs font-semibold px-2 py-0.5 rounded bg-[var(--surface2)] text-[var(--text2)]">
-                    {deal.stage}
-                  </span>
+                  <span>{essay.readingTime} min read</span>
                 </div>
 
-                <p className="text-xs text-[var(--text2)] line-clamp-2 leading-relaxed">
-                  {deal.description}
-                </p>
-
-                <div className="pt-3 border-t border-[var(--border)] text-[11px] text-[var(--text3)] space-y-1">
-                  <div>
-                    <span className="font-semibold text-[var(--text)]">Sector:</span> {deal.sector}
-                  </div>
-                  <div className="truncate">
-                    <span className="font-semibold text-[var(--text)]">Investors:</span>{' '}
-                    {deal.investors.slice(0, 2).join(', ')}
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </section>
-
-        {/* ─────────────────────────────────────────────────────────────
-            8. STRATEGIC RESEARCH & REPORTS SPOTLIGHT
-            ───────────────────────────────────────────────────────────── */}
-        <section aria-labelledby="reports-heading">
-          <div className="flex items-center justify-between mb-6">
-            <div>
-              <div className="section-label">Research Library</div>
-              <h2 id="reports-heading" className="text-xl sm:text-2xl font-bold tracking-tight">
-                Strategic Analysis & Deep Dives
-              </h2>
-            </div>
-            <Link
-              href="/analysis"
-              className="text-xs sm:text-sm font-semibold text-[var(--accent)] hover:text-[var(--accent2)] flex items-center gap-1 group"
-            >
-              View Research Archive
-              <ArrowRight size={14} className="group-hover:translate-x-1 transition-transform" />
-            </Link>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {analysisSpotlight.map((report) => (
-              <div
-                key={report.id}
-                className="card p-5 bg-[var(--surface)] hover:border-[var(--accent)] transition-all flex flex-col justify-between"
-              >
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between">
-                    <CategoryBadge category={report.category} size="sm" />
-                    <span className="text-[11px] text-[var(--text3)]">
-                      {report.readingTime} min analysis
-                    </span>
-                  </div>
-
-                  <h3 className="font-bold text-base leading-snug">
-                    <Link
-                      href={`/intelligence/${report.slug}`}
-                      className="hover:text-[var(--accent)] transition-colors line-clamp-2"
-                    >
-                      {report.title}
-                    </Link>
-                  </h3>
-
-                  <p className="text-xs text-[var(--text2)] line-clamp-3 leading-relaxed">
-                    {report.excerpt}
-                  </p>
-                </div>
-
-                <div className="pt-4 mt-4 border-t border-[var(--border)] flex items-center justify-between text-xs">
-                  <span className="text-[var(--text3)]">By {report.author.name}</span>
-                  <Link
-                    href={`/intelligence/${report.slug}`}
-                    className="text-[var(--accent)] font-semibold flex items-center gap-1 hover:underline"
-                  >
-                    Read Whitepaper <ArrowRight size={12} />
-                  </Link>
-                </div>
-              </div>
-            ))}
-          </div>
-        </section>
-
-        {/* ─────────────────────────────────────────────────────────────
-            9. POLICY & REGULATION SPOTLIGHT
-            ───────────────────────────────────────────────────────────── */}
-        <section aria-labelledby="policy-heading">
-          <div className="flex items-center justify-between mb-6">
-            <div>
-              <div className="section-label">Sovereignty & Governance</div>
-              <h2 id="policy-heading" className="text-xl sm:text-2xl font-bold tracking-tight">
-                Regulatory Frameworks & Policies
-              </h2>
-            </div>
-            <Link
-              href="/regulation"
-              className="text-xs sm:text-sm font-semibold text-[var(--accent)] hover:text-[var(--accent2)] flex items-center gap-1 group"
-            >
-              All Regulations
-              <ArrowRight size={14} className="group-hover:translate-x-1 transition-transform" />
-            </Link>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-            {latestRegulations.map((reg) => (
-              <div
-                key={reg.id}
-                className="card p-5 bg-[var(--surface)] border-l-4 border-l-[var(--accent)] hover:border-[var(--accent)] transition-all space-y-3"
-              >
-                <div className="flex items-center justify-between">
-                  <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
-                    {reg.status}
-                  </span>
-                  <CountryPill country={reg.country} />
-                </div>
-
-                <h3 className="font-bold text-base leading-snug">
-                  <Link href="/regulation" className="hover:text-[var(--accent)] transition-colors">
-                    {reg.title}
-                  </Link>
+                <h3 className="text-xl sm:text-2xl font-serif font-bold text-[var(--text)] group-hover:text-[var(--accent)] transition-colors leading-snug">
+                  <Link href={`/intelligence/${essay.slug}`}>{essay.title}</Link>
                 </h3>
 
-                <p className="text-xs text-[var(--text2)] line-clamp-2 leading-relaxed">
-                  {reg.summary}
-                </p>
+                <blockquote className="border-l-3 border-[var(--accent)] pl-4 py-1 text-sm sm:text-base text-[var(--text2)] leading-relaxed italic font-serif">
+                  &ldquo;{essay.excerpt}&rdquo;
+                </blockquote>
 
-                <div className="pt-2 border-t border-[var(--border)] flex items-center justify-between text-xs text-[var(--text3)]">
-                  <span>Authority: {reg.authority}</span>
-                  <span className="font-semibold text-[var(--accent)]">{reg.category}</span>
-                </div>
-              </div>
-            ))}
-          </div>
-        </section>
-
-        {/* ─────────────────────────────────────────────────────────────
-            10. FEATURED AI VENDORS & TOOLS
-            ───────────────────────────────────────────────────────────── */}
-        <section aria-labelledby="vendors-heading">
-          <div className="flex items-center justify-between mb-6">
-            <div>
-              <div className="section-label">Enterprise Solutions</div>
-              <h2 id="vendors-heading" className="text-xl sm:text-2xl font-bold tracking-tight">
-                Featured Regional AI Champions
-              </h2>
-            </div>
-            <Link
-              href="/vendors"
-              className="text-xs sm:text-sm font-semibold text-[var(--accent)] hover:text-[var(--accent2)] flex items-center gap-1 group"
-            >
-              Explore Directory
-              <ArrowRight size={14} className="group-hover:translate-x-1 transition-transform" />
-            </Link>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-            {featuredVendors.map((vendor) => (
-              <div
-                key={vendor.id}
-                className="card p-5 bg-[var(--surface)] hover:border-[var(--accent)] transition-all space-y-3 flex flex-col justify-between"
-              >
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-1.5 font-bold text-base">
-                      <span>{vendor.name}</span>
-                      {vendor.verified && (
-                        <CheckCircle2 size={15} className="text-[var(--accent2)]" />
-                      )}
+                <div className="pt-2 flex items-center justify-between">
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-8 h-8 rounded-full bg-[var(--accent)] text-white text-xs font-bold flex items-center justify-center">
+                      {essay.author.name.charAt(0)}
                     </div>
-                    <CountryPill country={vendor.country} />
+                    <div>
+                      <span className="text-xs font-bold text-[var(--text)] block">{essay.author.name}</span>
+                      <span className="text-[10px] text-[var(--text3)]">{essay.author.role}</span>
+                    </div>
                   </div>
-
-                  <span className="inline-block text-[10px] font-semibold uppercase tracking-wider text-[var(--accent)]">
-                    {vendor.category}
-                  </span>
-
-                  <p className="text-xs text-[var(--text2)] line-clamp-3 leading-relaxed">
-                    {vendor.description}
-                  </p>
-                </div>
-
-                <div className="pt-3 border-t border-[var(--border)] flex items-center justify-between text-xs">
-                  <span className="text-[11px] text-[var(--text3)]">
-                    Est. {vendor.foundedYear || 2020} • {vendor.employees || 'Enterprise'}
-                  </span>
-                  <a
-                    href={vendor.website}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-[var(--accent)] font-semibold inline-flex items-center gap-1 hover:underline"
+                  <Link
+                    href={`/intelligence/${essay.slug}`}
+                    className="text-xs font-semibold text-[var(--accent)] hover:underline flex items-center gap-1"
                   >
-                    Profile <ExternalLink size={11} />
-                  </a>
+                    Read Essay <ArrowRight size={12} />
+                  </Link>
                 </div>
-              </div>
+              </article>
             ))}
           </div>
         </section>
 
         {/* ─────────────────────────────────────────────────────────────
-            11. EXECUTIVE NEWSLETTER SUBSCRIPTION
+            INLINE NEWSROOM DISPATCH SUBSCRIPTION (EDITORIAL TICKER STRIP)
             ───────────────────────────────────────────────────────────── */}
-        <section aria-label="Executive Briefing Subscription">
-          <NewsletterCTA />
+        <section id="newsletter-signup" className="border-y-2 border-[var(--border)] py-8 my-8">
+          <div className="max-w-2xl mx-auto text-center space-y-3">
+            <span className="text-[10px] font-bold uppercase tracking-widest text-[var(--accent)]">
+              Daily Intelligence Briefing
+            </span>
+            <h3 className="text-xl sm:text-2xl font-bold text-[var(--text)]">
+              Get the AI Watch MENA Morning Dispatch
+            </h3>
+            <p className="text-xs sm:text-sm text-[var(--text2)] leading-relaxed">
+              Join 45,000+ technology leaders, policymakers, founders, and investors receiving our daily executive briefing on artificial intelligence across the Middle East and worldwide.
+            </p>
+
+            {newsletterSubmitted ? (
+              <div className="p-3 rounded-lg bg-emerald-500/10 border border-emerald-500/30 text-emerald-600 text-xs font-semibold">
+                Thank you. You have been added to the morning wire distribution list.
+              </div>
+            ) : (
+              <form
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  if (newsletterEmail) setNewsletterSubmitted(true);
+                }}
+                className="flex flex-col sm:flex-row items-center gap-2.5 max-w-md mx-auto pt-2"
+              >
+                <input
+                  type="email"
+                  required
+                  value={newsletterEmail}
+                  onChange={(e) => setNewsletterEmail(e.target.value)}
+                  placeholder="name@enterprise.com"
+                  className="w-full px-4 py-2.5 rounded-lg border border-[var(--border)] bg-[var(--surface)] text-xs text-[var(--text)] outline-none focus:border-[var(--accent)]"
+                />
+                <button
+                  type="submit"
+                  className="w-full sm:w-auto px-5 py-2.5 rounded-lg bg-[var(--accent)] text-white text-xs font-bold hover:bg-[var(--accent)]/90 transition-colors shrink-0 cursor-pointer"
+                >
+                  Subscribe
+                </button>
+              </form>
+            )}
+            <span className="text-[10px] text-[var(--text3)] block">
+              Free daily edition • Zero advertising tracking • Unsubscribe at any time
+            </span>
+          </div>
         </section>
 
       </div>
+
+      {/* ─────────────────────────────────────────────────────────────
+          PLAYABLE VIDEO MODAL PLAYER
+          ───────────────────────────────────────────────────────────── */}
+      <AnimatePresence>
+        {activeVideo && (
+          <motion.div
+            className="fixed inset-0 z-[250] flex items-center justify-center p-4 bg-black/80 backdrop-blur-md"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={() => setActiveVideo(null)}
+          >
+            <motion.div
+              className="w-full max-w-4xl bg-[var(--surface)] border border-[var(--border)] rounded-2xl overflow-hidden shadow-2xl"
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="flex items-center justify-between p-4 border-b border-[var(--border)] bg-[var(--surface)]">
+                <div>
+                  <span className="text-[10px] font-bold text-red-500 uppercase tracking-wider block">
+                    AI Watch MENA Broadcast
+                  </span>
+                  <h4 className="text-sm font-bold text-[var(--text)] line-clamp-1">
+                    {activeVideo.title}
+                  </h4>
+                </div>
+                <button
+                  onClick={() => setActiveVideo(null)}
+                  className="p-1.5 rounded-lg hover:bg-[var(--surface2)] text-[var(--text3)] hover:text-[var(--text)] cursor-pointer"
+                  aria-label="Close video"
+                >
+                  <X size={18} />
+                </button>
+              </div>
+
+              {/* Video Embed */}
+              <div className="relative aspect-video w-full bg-black">
+                <iframe
+                  src={activeVideo.videoUrl}
+                  title={activeVideo.title}
+                  className="w-full h-full border-0"
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                  allowFullScreen
+                />
+              </div>
+
+              <div className="p-4 bg-[var(--surface)] text-xs text-[var(--text2)] space-y-1">
+                <p>{activeVideo.description}</p>
+                <div className="flex items-center gap-3 pt-2 text-[10px] text-[var(--text3)]">
+                  <span>Duration: {activeVideo.duration}</span>
+                  <span>•</span>
+                  <span>Presenter: {activeVideo.presenter}</span>
+                  <span>•</span>
+                  <span>{activeVideo.views} views</span>
+                </div>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
     </div>
-  )
+  );
 }
